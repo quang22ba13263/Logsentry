@@ -1,0 +1,24 @@
+[Unit]
+Description=LogSentry AI - Metrics Collector
+After=network.target
+
+[Service]
+Type=simple
+User=nobody
+Group=nogroup
+WorkingDirectory=/opt/logsentry-shipper
+ExecStart=/usr/bin/python3 /opt/logsentry-shipper/metrics_collector.py \
+    --api-url http://logsentry-server:5000 \
+    --api-key logsentry-api-key-change-in-production \
+    --host %H \
+    --interval 60
+
+Restart=always
+RestartSec=10
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

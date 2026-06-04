@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Logs API</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4; }
+        .log { margin: 5px 0; }
+        .ERROR { color: #ff4757; }
+        .WARN { color: #ffa502; }
+        .INFO { color: #5dade2; }
+        #status { padding: 10px; background: #333; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1>LogSentry Logs Test</h1>
+    <div id="status">Loading...</div>
+    <div id="logs"></div>
+
+    <script>
+        async function loadLogs() {
+            const statusDiv = document.getElementById('status');
+            const logsDiv = document.getElementById('logs');
+
+            try {
+                statusDiv.textContent = 'Fetching logs from API...';
+
+                const response = await fetch('http://103.90.225.38:5000/api/logs?limit=50');
+
+                statusDiv.textContent = `Response status: ${response.status}`;
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                statusDiv.textContent = `✓ Loaded ${data.logs.length} logs`;
+
+                logsDiv.innerHTML = data.logs.map(log => {
+                    return `<div class="log ${log.level}">
+                        [${new Date(log.timestamp).toLocaleString()}]
+                        <strong>${log.level}</strong>
+                        ${log.service}: ${log.message}
+                    </div>`;
+                }).join('');
+
+            } catch (error) {
+                statusDiv.textContent = `✗ Error: ${error.message}`;
+                statusDiv.style.background = '#ff4757';
+                console.error(error);
+            }
+        }
+
+        loadLogs();
+        setInterval(loadLogs, 5000);
+    </script>
+</body>
+</html>

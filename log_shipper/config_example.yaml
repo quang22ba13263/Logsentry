@@ -1,0 +1,39 @@
+# LogSentry AI Log Shipper Configuration Example
+
+# LogSentry AI API settings
+api:
+  url: "http://localhost:5000"
+  api_key: "logsentry-api-key-change-in-production"
+
+# Service identification
+service:
+  name: "my-application"
+  host: "server-01"  # Optional, auto-detected if not specified
+
+# Log files to monitor
+log_files:
+  - path: "/var/log/application.log"
+    format: "standard"  # or "json", "syslog"
+
+  - path: "/var/log/nginx/access.log"
+    format: "nginx"
+
+# Batching settings
+batch:
+  size: 100  # Send after this many logs
+  timeout: 10  # Or send after this many seconds
+
+# Retry settings
+retry:
+  max_attempts: 3
+  backoff: 5  # seconds
+
+# Optional: System metrics collection
+metrics:
+  enabled: true
+  interval: 60  # seconds
+  collect:
+    - cpu
+    - memory
+    - disk_io
+    - network

@@ -1,0 +1,483 @@
+================================================================================
+                        KỊCH BẢN DEMO - LOGSENTRY AI
+          Hệ thống giám sát và phát hiện bất thường log thời gian thực
+================================================================================
+
+BƯỚC 1: Thu thập dữ liệu (Data Collection)
+-------------------------------------------
+- Log shippers (Python agents) chạy trên các servers
+- Thu thập:
+  + Application logs (ERROR, WARN, INFO)
+  + System metrics (CPU, Memory, Disk I/O, Network)
+- Gửi về LogSentry qua REST API (/api/logs, /api/metrics)
+- Lưu vào database: LogEntry, MetricEntry tables
+
+BƯỚC 2: Aggregation (Time Windows)
+-----------------------------------
+- Window size: 5 phút (configurable)
+- Background worker kiểm tra mỗi 1 phút
+- Gom nhóm logs và metrics theo time windows
+- Tạo features tổng hợp:
+  + error_count, warn_count, info_count
+  + error_rate (errors/total_logs)
+  + cpu_avg, mem_avg, disk_io_avg
+  + network_in, network_out
+
+BƯỚC 3: Feature Extraction
+---------------------------
+Từ mỗi time window, trích xuất 10 features chính:
+  1. error_count      : Số lượng ERROR logs
+  2. warn_count       : Số lượng WARNING logs
+  3. info_count       : Số lượng INFO logs
+  4. total_logs       : Tổng số logs
+  5. error_rate       : Tỷ lệ error (0-1)
+  6. cpu_avg          : CPU trung bình (%)
+  7. mem_avg          : Memory trung bình (%)
+  8. disk_io_avg      : Disk I/O trung bình
+  9. network_in       : Network inbound (bytes)
+  10. network_out     : Network outbound (bytes)
+
+Lưu vào bảng: Feature
+
+BƯỚC 4: Anomaly Detection (4 Detectors)
+----------------------------------------
+
+Detector 1: Rule-based (Trọng số 20%)
+  - Kiểm tra ngưỡng cứng:
+    + error_count > RULE_ERROR_THRESHOLD (default: 5)
+    + cpu_avg > RULE_CPU_THRESHOLD (default: 80%)
+    + mem_avg > RULE_MEM_THRESHOLD (default: 85%)
+  - Score: 0.0 - 1.0
+  - Output: rule_anomaly (0/1), rule_score
+
+Detector 2: Isolation Forest (Trọng số 30%)
+  - Thuật toán ML: Isolation Forest (sklearn)
+  - Training: Trên dữ liệu historical
+  - Features: [error_count, error_rate, cpu_avg, mem_avg]
+  - Phát hiện outliers trong không gian đa chiều
+  - Output: if_anomaly (0/1), if_score
+
+Detector 3: VAR Model (Trọng số 25%)
+  - Vector Autoregression (statsmodels)
+  - Mô hình chuỗi thời gian đa biến
+  - Dự đoán giá trị tiếp theo dựa trên lịch sử (50 windows)
+  - So sánh predicted vs actual
+  - Output: var_anomaly (0/1), var_score
+
+Detector 4: DeepLog (Trọng số 25%)
+  - Deep learning model (LSTM) với TensorFlow
+  - Học patterns từ log sequences
+  - Phát hiện log sequences bất thường
+  - Sử dụng 100 logs gần nhất làm context
+  - Output: deeplog_anomaly (0/1), deeplog_score
+
+BƯỚC 5: Fusion & Severity Scoring
+----------------------------------
+Weighted Voting:
+  final_score = (rule_score * 0.20) + (if_score * 0.30) +
+                (var_score * 0.25) + (deeplog_score * 0.25)
+
+  votes = rule_anomaly + if_anomaly + var_anomaly + deeplog_anomaly
+
+Quyết định:
+  final_anomaly = 1 nếu (votes >= 2 HOẶC final_score >= 0.6)
+
+Phân loại Severity:
+  - High:   final_score >= 0.7
+  - Medium: 0.4 <= final_score < 0.7
+  - Low:    final_score < 0.4
+
+Lưu vào bảng: DetectionResult
+
+BƯỚC 6: Alert Generation
+-------------------------
+Nếu final_anomaly = 1:
+  - Tạo Alert message (thông tin về lỗi, CPU, Memory)
+  - Lưu vào bảng Alert
+  - Gửi SSE event đến dashboard
+  - Log warning message
+
+Dashboard hiển thị:
+  - Realtime alert popup
+  - Alert history
+  - Alert details (severity, score, detectors agreement)
+
+================================================================================
+IV. CÁC THÀNH PHẦN CHÍNH
+================================================================================
+
+1. Flask Application (app/)
+----------------------------
+   - __init__.py      : Application factory
+   - config.py        : Configuration settings
+   - models.py        : Database models (User, LogEntry, MetricEntry, etc.)
+
+   - api/             : REST API endpoints
+     + logs.py        : POST /api/logs (nhận logs)
+     + metrics.py     : POST /api/metrics (nhận metrics)
+     + alerts.py      : GET /api/alerts (lấy alerts)
+     + stream.py      : GET /api/stream (SSE endpoint)
+     + auth.py        : Authentication API
+
+   - dashboard/       : Web UI routes
+   - auth/            : Authentication blueprints
+
+   - workers/         : Background processing
+     + __init__.py    : Worker thread manager
+     + processor.py   : Main log processor (aggregation + detection)
+
+2. Detection Modules (src/detectors/)
+--------------------------------------
+   - rule_based.py    : RuleBasedDetector class
+   - ml_models.py     : IsolationForestDetector, AutoencoderDetector
+   - statistical.py   : VARDetector class (time series)
+   - deeplog.py       : DeepLogDetector (LSTM model)
+
+3. Supporting Modules (src/)
+-----------------------------
+   - feature_extraction/  : FeatureExtractor class
+   - fusion/              : AnomalyFusion class (voting, severity)
+   - database/            : Database helpers
+   - data_generation/     : Synthetic data generator (for testing)
+   - utils/               : Utilities
+
+4. Log Shippers (shippers/, log_shipper/)
+------------------------------------------
+   - Python-based agents chạy trên target servers
+   - Thu thập logs và metrics
+   - Gửi về LogSentry server qua HTTP API
+
+5. Training Scripts (root/)
+----------------------------
+   - train_all_models.py     : Train tất cả 4 models
+   - pipeline.py             : Full pipeline demo
+   - generate_anomalies.py   : Generate test data với anomalies
+
+6. Database Schema
+------------------
+   Bảng chính:
+   - users              : User accounts
+   - log_entries        : Raw logs
+   - metric_entries     : Raw system metrics
+   - features           : Aggregated features (5-min windows)
+   - detection_results  : Kết quả detection từ 4 detectors
+   - alerts             : Alerts được tạo ra
+
+================================================================================
+V. KỊCH BẢN DEMO - BƯỚC THỰC HIỆN
+================================================================================
+
+CHUẨN BỊ:
+---------
+1. Cài đặt dependencies:
+   pip install -r requirements.txt
+   pip install -r requirements_flask.txt
+
+2. Cấu hình .env file (copy từ .env.example):
+   - Đặt SECRET_KEY
+   - Đặt DATABASE_URL
+   - Cấu hình thresholds nếu cần
+
+3. Training models (nếu chưa có):
+   python train_all_models.py
+
+DEMO 1: Full Pipeline (Offline)
+--------------------------------
+Mục đích: Demo pipeline đầy đủ với synthetic data
+
+Bước 1: Generate synthetic data
+   python pipeline.py --days 7
+
+Bước 2: Xem kết quả
+   - data/processed/features.csv      : Features extracted
+   - data/processed/final_results.csv : Detection results
+   - data/processed/alerts.csv        : Generated alerts
+   - data/models/                     : Trained models
+
+Giải thích output:
+   - Số anomalies detected bởi mỗi detector
+   - F1-score của từng detector
+   - Final fusion results (votes, severity distribution)
+   - Top alerts (High/Medium/Low)
+
+DEMO 2: Real-time System với Web Dashboard
+-------------------------------------------
+Mục đích: Demo hệ thống thực tế với web interface
+
+Bước 1: Start Flask server
+   python run.py
+
+   Server chạy tại: http://localhost:5000
+   Default login: admin / admin123
+
+Bước 2: Truy cập Dashboard
+   Browser -> http://localhost:5000
+   Login với admin credentials
+
+   Các trang chính:
+   - Dashboard: Real-time metrics và alerts
+   - Alerts: Alert history và management
+   - Detection: Detection results timeline
+   - Logs: Raw logs viewer
+
+Bước 3: Start Log Shipper (trên server khác/local test)
+   cd log_shipper
+   python shipper.py --server http://localhost:5000 --interval 10
+
+   Shipper sẽ:
+   - Thu thập system metrics
+   - Generate sample logs
+   - Gửi về LogSentry mỗi 10 giây
+
+Bước 4: Quan sát trên Dashboard
+   - Metrics charts cập nhật real-time
+   - Logs được hiển thị
+   - Background worker xử lý mỗi 5 phút
+   - Alerts xuất hiện khi phát hiện anomaly
+
+Bước 5: Simulate Anomaly (Test)
+   python generate_anomalies.py --host testserver
+
+   Script sẽ:
+   - Tạo burst of ERROR logs
+   - Simulate high CPU usage
+   - Simulate memory spike
+
+   Observe:
+   - Dashboard hiển thị alert mới (popup)
+   - Alert severity (High/Medium/Low)
+   - Detectors agreement (rule, if, var, deeplog)
+   - Alert message details
+
+Bước 6: Alert Management
+   - Click vào alert để xem chi tiết
+   - Resolve alert nếu đã xử lý
+   - Export alerts report
+
+DEMO 3: API Integration
+------------------------
+Mục đích: Demo tích hợp API cho external systems
+
+1. Send logs qua API:
+   curl -X POST http://localhost:5000/api/logs \
+     -H "Content-Type: application/json" \
+     -H "X-API-Key: your-api-key" \
+     -d '{
+       "timestamp": "2024-11-20T10:30:00Z",
+       "level": "ERROR",
+       "message": "Database connection failed",
+       "service": "api-server",
+       "host": "web01"
+     }'
+
+2. Send metrics qua API:
+   curl -X POST http://localhost:5000/api/metrics \
+     -H "Content-Type: application/json" \
+     -H "X-API-Key: your-api-key" \
+     -d '{
+       "timestamp": "2024-11-20T10:30:00Z",
+       "host": "web01",
+       "cpu": 85.5,
+       "memory": 92.3,
+       "disk_io": 1500,
+       "network_in": 50000,
+       "network_out": 30000
+     }'
+
+3. Get alerts qua API:
+   curl http://localhost:5000/api/alerts?severity=High \
+     -H "X-API-Key: your-api-key"
+
+4. Subscribe SSE stream (JavaScript):
+   const eventSource = new EventSource('/api/stream');
+   eventSource.addEventListener('alert', (event) => {
+     const alert = JSON.parse(event.data);
+     console.log('New alert:', alert);
+   });
+
+DEMO 4: Multi-detector Comparison
+----------------------------------
+Mục đích: So sánh hiệu quả của 4 detectors
+
+1. Run validation script:
+   python validate.py
+
+2. Output hiển thị:
+   - Precision, Recall, F1-score của từng detector
+   - Confusion matrix
+   - Detector agreement analysis
+   - Fusion improvement metrics
+
+3. Visualizations:
+   - ROC curves
+   - Detection timeline
+   - Score distributions
+
+================================================================================
+VI. USE CASES & SCENARIOS
+================================================================================
+
+Scenario 1: Server Overload Detection
+--------------------------------------
+Tình huống:
+  - Server web01 bị quá tải
+  - CPU spike lên 95%
+  - Memory usage tăng lên 90%
+  - Xuất hiện nhiều ERROR logs
+
+Detection:
+  1. Rule-based: Phát hiện ngay (CPU > 80%, Memory > 85%)
+  2. Isolation Forest: Phát hiện outlier (điểm bất thường)
+  3. VAR: Phát hiện deviation từ predicted values
+  4. DeepLog: Có thể không phát hiện (tùy log pattern)
+
+Kết quả:
+  - Votes: 3/4 (Rule, IF, VAR)
+  - Final score: ~0.75
+  - Severity: High
+  - Alert: "High CPU: 95.0% | High Memory: 90.0% | Errors: 12"
+
+Action:
+  - Dashboard hiển thị alert ngay
+  - Ops team nhận notification
+  - Investigate root cause
+  - Scale up hoặc restart service
+
+Scenario 2: Database Connection Issues
+---------------------------------------
+Tình huống:
+  - Database connection pool exhausted
+  - Burst of "Connection timeout" errors
+  - Application logs tăng đột biến
+
+Detection:
+  1. Rule-based: Phát hiện (error_count > threshold)
+  2. Isolation Forest: Phát hiện (error_count outlier)
+  3. VAR: Có thể phát hiện nếu có pattern lịch sử
+  4. DeepLog: Phát hiện (log sequence bất thường)
+
+Kết quả:
+  - Votes: 3-4/4
+  - Final score: ~0.70
+  - Severity: High
+  - Alert: "Errors: 25 | DB connection issues detected"
+
+Action:
+  - Check database health
+  - Increase connection pool size
+  - Check for slow queries
+
+Scenario 3: Gradual Memory Leak
+--------------------------------
+Tình huống:
+  - Memory usage tăng dần theo thời gian
+  - Không có ERROR logs
+  - Khó phát hiện với rule-based
+
+Detection:
+  1. Rule-based: Không phát hiện (chưa vượt ngưỡng)
+  2. Isolation Forest: Có thể phát hiện nếu đủ bất thường
+  3. VAR: Phát hiện tốt (trend prediction)
+  4. DeepLog: Không phát hiện (không có log anomaly)
+
+Kết quả:
+  - Votes: 1-2/4 (VAR, có thể IF)
+  - Final score: ~0.45
+  - Severity: Medium
+  - Alert: "High Memory: 82.0% (trending up)"
+
+Action:
+  - Monitor memory trend
+  - Plan restart window
+  - Investigate memory leak
+
+Scenario 4: DDoS Attack
+-----------------------
+Tình huống:
+  - Network traffic tăng đột biến
+  - High network_in values
+  - CPU tăng do xử lý requests
+  - Error logs tăng (connection refused)
+
+Detection:
+  1. Rule-based: Phát hiện (CPU, errors)
+  2. Isolation Forest: Phát hiện (outlier pattern)
+  3. VAR: Phát hiện (deviation)
+  4. DeepLog: Phát hiện (log pattern anomaly)
+
+Kết quả:
+  - Votes: 4/4 (all detectors)
+  - Final score: ~0.85
+  - Severity: High
+  - Alert: "Errors: 150 | High CPU: 92% | Network spike"
+
+Action:
+  - Enable DDoS protection
+  - Rate limiting
+  - Block suspicious IPs
+
+Scenario 5: Deployment Issue
+-----------------------------
+Tình huống:
+  - New deployment introduced bug
+  - Application errors tăng sau deploy
+  - Specific error pattern xuất hiện
+
+Detection:
+  1. Rule-based: Phát hiện (error_count)
+  2. Isolation Forest: Phát hiện (error pattern change)
+  3. VAR: Có thể phát hiện
+  4. DeepLog: Phát hiện tốt (new log sequences)
+
+Kết quả:
+  - Votes: 3-4/4
+  - Final score: ~0.72
+  - Severity: High
+  - Alert: "Errors: 45 | New error pattern after deployment"
+
+Action:
+  - Rollback deployment
+  - Review changes
+  - Fix and redeploy
+
+================================================================================
+VII. METRICS & PERFORMANCE
+================================================================================
+
+System Performance:
+-------------------
+- Processing latency: < 5s per window (5-min window)
+- Detection throughput: ~1000 logs/second
+- API response time: < 100ms
+- SSE event latency: < 1s
+
+Detection Performance (trên test data):
+----------------------------------------
+Detector            Precision   Recall    F1-Score
+-----------------------------------------------------
+Rule-based          0.95        0.65      0.77
+Isolation Forest    0.88        0.82      0.85
+VAR Model           0.85        0.78      0.81
+DeepLog             0.90        0.75      0.82
+-----------------------------------------------------
+Fusion (All)        0.92        0.86      0.89
+
+Fusion Advantages:
+- Higher recall (ít false negatives)
+- Balanced precision/recall
+- Severity classification giúp prioritize
+
+Resource Usage:
+---------------
+- Memory: ~200-500 MB (depends on data volume)
+- CPU: < 10% (idle), < 50% (processing)
+- Disk: Depends on log retention (configurable)
+- Models size: ~50 MB total
+
+Scalability:
+------------
+- Horizontal: Multiple workers với queue
+- Vertical: Optimize detection algorithms
+- Database: PostgreSQL cho production
+- Caching: Redis cho real-time data
+

@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Số liệu - LogSentry AI{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2><i class="bi bi-graph-up"></i> Số liệu hệ thống</h2>
+    <p class="text-muted">Giám sát số liệu hiệu suất hệ thống</p>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="bi bi-cpu"></i> Mức sử dụng CPU theo thời gian</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="cpuChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="bi bi-memory"></i> Mức sử dụng bộ nhớ theo thời gian</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="memoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-exclamation-triangle"></i> Số lỗi theo thời gian</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="errorChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function loadMetrics() {
+    const response = await fetch('/api/dashboard/data?range=24h');
+    const data = await response.json();
+
+    renderCPUChart(data.features);
+    renderMemoryChart(data.features);
+    renderErrorChart(data.features);
+}
+
+function renderCPUChart(features) {
+    const ctx = document.getElementById('cpuChart').getContext('2d');
+    const timestamps = features.map(f => new Date(f.timestamp).toLocaleTimeString('vi-VN'));
+    const cpuData = features.map(f => f.cpu_avg);
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: timestamps,
+            datasets: [{
+                label: 'CPU %',
+                data: cpuData,
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+}
+
+function renderMemoryChart(features) {
+    const ctx = document.getElementById('memoryChart').getContext('2d');
+    const timestamps = features.map(f => new Date(f.timestamp).toLocaleTimeString('vi-VN'));
+    const memData = features.map(f => f.mem_avg);
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: timestamps,
+            datasets: [{
+                label: 'Bộ nhớ %',
+                data: memData,
+                borderColor: '#764ba2',
+                backgroundColor: 'rgba(118, 75, 162, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+}
+
+function renderErrorChart(features) {
+    const ctx = document.getElementById('errorChart').getContext('2d');
+    const timestamps = features.map(f => new Date(f.timestamp).toLocaleTimeString('vi-VN'));
+    const errorData = features.map(f => f.error_count);
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: timestamps,
+            datasets: [{
+                label: 'Số lỗi',
+                data: errorData,
+                backgroundColor: '#ff4757'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', loadMetrics);
+setInterval(loadMetrics, 10000); // Làm mới mỗi 10 giây (changed from 60s)
+</script>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Đăng nhập - LogSentry AI{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+        <div class="col-md-5">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <i class="bi bi-shield-check" style="font-size: 4rem; color: #667eea;"></i>
+                        <h2 class="mt-3">LogSentry AI</h2>
+                        <p class="text-muted">Hệ thống phát hiện bất thường</p>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('auth.login') }}">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Tên đăng nhập</label>
+                            <input type="text" class="form-control" id="username" name="username" required autofocus>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Mật khẩu</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                            <label class="form-check-label" for="remember">Ghi nhớ đăng nhập</label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-2">
+                            <i class="bi bi-box-arrow-in-right"></i> Đăng nhập
+                        </button>
+                    </form>
+
+                    <hr class="my-4">
+
+                    <div class="text-center">
+                        <p class="text-muted mb-2">Tài khoản mặc định:</p>
+                        <small class="text-muted">
+                            Tên đăng nhập: <code>admin</code> | Mật khẩu: <code>admin123</code>
+                        </small>
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('auth.register') }}" class="text-decoration-none">
+                            Tạo tài khoản mới
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

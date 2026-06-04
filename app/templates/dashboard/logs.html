@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Nhật ký trực tiếp - LogSentry AI{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2><i class="bi bi-file-text"></i> Nhật ký trực tiếp</h2>
+    <p class="text-muted">Trực tiếp nhật ký thời gian thực</p>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5><i class="bi bi-terminal"></i> Luồng nhật ký</h5>
+        <div>
+            <select class="form-select form-select-sm" id="levelFilter">
+                <option value="">Tất cả mức độ</option>
+                <option value="ERROR">ERROR</option>
+                <option value="WARN">WARN</option>
+                <option value="INFO">INFO</option>
+            </select>
+        </div>
+    </div>
+    <div class="card-body">
+        <div id="logContainer" style="height: 600px; overflow-y: scroll; background: #1e1e1e; color: #d4d4d4; padding: 1rem; font-family: monospace; font-size: 0.9rem;">
+            <div id="logs"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let logs = [];
+const maxLogs = 500;
+
+async function loadLogs() {
+    const response = await fetch('/api/logs?limit=100');
+    const data = await response.json();
+
+    logs = data.logs.reverse();
+    renderLogs();
+}
+
+function renderLogs() {
+    const filter = document.getElementById('levelFilter').value;
+    const container = document.getElementById('logs');
+
+    const filtered = filter ? logs.filter(log => log.level === filter) : logs;
+
+    container.innerHTML = filtered.map(log => {
+        const color = {
+            'ERROR': '#ff4757',
+            'WARN': '#ffa502',
+            'WARNING': '#ffa502',
+            'INFO': '#5dade2'
+        }[log.level] || '#d4d4d4';
+
+        return `<div style="margin-bottom: 0.5rem;">
+            <span style="color: #888;">${new Date(log.timestamp).toLocaleString('vi-VN')}</span>
+            <span style="color: ${color}; font-weight: bold;">[${log.level}]</span>
+            <span style="color: #2ecc71;">${log.service || 'không xác định'}</span>
+            <span>${log.message}</span>
+        </div>`;
+    }).join('');
+
+    container.parentElement.scrollTop = container.parentElement.scrollHeight;
+}
+
+document.getElementById('levelFilter').addEventListener('change', renderLogs);
+
+document.addEventListener('DOMContentLoaded', loadLogs);
+setInterval(loadLogs, 5000); // Làm mới mỗi 5 giây
+</script>
+{% endblock %}

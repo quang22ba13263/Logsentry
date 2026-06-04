@@ -1,0 +1,27 @@
+# LogSentry AI - Flask Application Requirements
+
+# Core Flask
+Flask>=3.0.0
+Flask-SQLAlchemy>=3.1.1
+Flask-Login>=0.6.3
+
+# Database
+SQLAlchemy>=2.0.0
+
+# ML & Detection (from main requirements)
+pandas>=1.5.0
+numpy>=1.23.0
+scikit-learn>=1.2.0
+tensorflow>=2.12.0
+statsmodels>=0.14.0
+
+# Utilities
+python-dateutil>=2.8.0
+Werkzeug>=3.0.0
+
+# Production server (optional)
+gunicorn>=21.2.0
+
+# Development tools (optional)
+# pytest>=7.4.0
+# flask-debugtoolbar>=0.14.1

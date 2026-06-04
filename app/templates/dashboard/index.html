@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+
+{% block title %}Bảng điều khiển - LogSentry AI{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2><i class="bi bi-speedometer2"></i> Bảng điều khiển</h2>
+    <p class="text-muted">Giám sát phát hiện bất thường thời gian thực</p>
+</div>
+
+<!-- Thẻ tổng quan -->
+<div class="row">
+    <div class="col-md-3">
+        <div class="metric-card bg-primary text-white">
+            <h6>Tổng cảnh báo (24h)</h6>
+            <h2>{{ total_alerts }}</h2>
+            <small><i class="bi bi-clock-history"></i> 24 giờ qua</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card severity-high">
+            <h6>Mức độ cao</h6>
+            <h2>{{ high_alerts }}</h2>
+            <small><i class="bi bi-exclamation-triangle"></i> Cần xử lý ngay</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card severity-medium">
+            <h6>Mức độ trung bình</h6>
+            <h2>{{ medium_alerts }}</h2>
+            <small><i class="bi bi-exclamation-circle"></i> Theo dõi sát</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card bg-info text-white">
+            <h6>Chưa xử lý</h6>
+            <h2>{{ unresolved_alerts }}</h2>
+            <small><i class="bi bi-question-circle"></i> Cần đánh giá</small>
+        </div>
+    </div>
+</div>
+
+<!-- Biểu đồ -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-graph-up"></i> Xu hướng tỷ lệ lỗi</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="errorRateChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-cpu"></i> Sử dụng CPU & Bộ nhớ</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="resourceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cảnh báo gần đây -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="bi bi-bell"></i> Cảnh báo gần đây</h5>
+                <span class="badge bg-danger" id="liveIndicator">
+                    <span class="status-indicator status-online"></span> TRỰC TIẾP
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="alertsTable">
+                        <thead>
+                            <tr>
+                                <th>Thời gian</th>
+                                <th>Mức độ</th>
+                                <th>Điểm số</th>
+                                <th>Thông báo</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alert in recent_alerts %}
+                            <tr>
+                                <td>{{ alert.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    <span class="alert-badge severity-{{ alert.severity.lower() }}">
+                                        {{ alert.severity }}
+                                    </span>
+                                </td>
+                                <td>{{ "%.2f"|format(alert.final_score) }}</td>
+                                <td>{{ alert.message }}</td>
+                                <td>
+                                    {% if not alert.is_resolved %}
+                                    <button class="btn btn-sm btn-success" onclick="resolveAlert({{ alert.id }})">
+                                        <i class="bi bi-check"></i> Đã xử lý
+                                    </button>
+                                    {% else %}
+                                    <span class="text-success"><i class="bi bi-check-circle"></i> Đã xử lý</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Tải dữ liệu bảng điều khiển
+async function loadDashboardData() {
+    try {
+        const response = await fetch('/api/dashboard/data?range=24h');
+        const data = await response.json();
+
+        // Cập nhật biểu đồ
+        updateErrorRateChart(data.features);
+        updateResourceChart(data.features);
+    } catch (error) {
+        console.error('Lỗi khi tải dữ liệu:', error);
+    }
+}
+
+// Biểu đồ tỷ lệ lỗi
+let errorRateChart = null;
+function updateErrorRateChart(features) {
+    const ctx = document.getElementById('errorRateChart').getContext('2d');
+
+    if (errorRateChart) {
+        errorRateChart.destroy();
+    }
+
+    const timestamps = features.map(f => new Date(f.timestamp).toLocaleTimeString('vi-VN'));
+    const errorRates = features.map(f => f.error_rate * 100);
+
+    errorRateChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: timestamps,
+            datasets: [{
+                label: 'Tỷ lệ lỗi (%)',
+                data: errorRates,
+                borderColor: '#ff4757',
+                backgroundColor: 'rgba(255, 71, 87, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true
+                }
+            }
+        }
+    });
+}
+
+// Biểu đồ tài nguyên
+let resourceChart = null;
+function updateResourceChart(features) {
+    const ctx = document.getElementById('resourceChart').getContext('2d');
+
+    if (resourceChart) {
+        resourceChart.destroy();
+    }
+
+    const timestamps = features.map(f => new Date(f.timestamp).toLocaleTimeString('vi-VN'));
+    const cpuData = features.map(f => f.cpu_avg);
+    const memData = features.map(f => f.mem_avg);
+
+    resourceChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: timestamps,
+            datasets: [
+                {
+                    label: 'CPU (%)',
+                    data: cpuData,
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    tension: 0.4
+                },
+                {
+                    label: 'Bộ nhớ (%)',
+                    data: memData,
+                    borderColor: '#764ba2',
+                    backgroundColor: 'rgba(118, 75, 162, 0.1)',
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true
+                }
+            }
+        }
+    });
+}
+
+// Server-Sent Events cho cập nhật thời gian thực
+const eventSource = new EventSource('/api/stream/alerts');
+
+eventSource.addEventListener('alert', function(e) {
+    const alert = JSON.parse(e.data);
+    console.log('Nhận cảnh báo mới:', alert);
+
+    // Thêm vào bảng
+    addAlertToTable(alert);
+
+    // Hiện thông báo
+    showNotification(alert);
+});
+
+eventSource.addEventListener('error', function(e) {
+    console.error('Lỗi SSE:', e);
+});
+
+function addAlertToTable(alert) {
+    const tbody = document.querySelector('#alertsTable tbody');
+    const row = document.createElement('tr');
+    row.className = 'table-warning'; // Làm nổi bật dòng mới
+
+    const timestamp = new Date(alert.timestamp).toLocaleString('vi-VN');
+
+    row.innerHTML = `
+        <td>${timestamp}</td>
+        <td><span class="alert-badge severity-${alert.severity.toLowerCase()}">${alert.severity}</span></td>
+        <td>${alert.final_score.toFixed(2)}</td>
+        <td>${alert.message}</td>
+        <td>
+            <button class="btn btn-sm btn-success" onclick="resolveAlert(${alert.id})">
+                <i class="bi bi-check"></i> Đã xử lý
+            </button>
+        </td>
+    `;
+
+    tbody.insertBefore(row, tbody.firstChild);
+
+    // Bỏ làm nổi bật sau 3 giây
+    setTimeout(() => {
+        row.classList.remove('table-warning');
+    }, 3000);
+}
+
+function showNotification(alert) {
+    // Thông báo trên trình duyệt
+    if (Notification.permission === 'granted') {
+        new Notification('Cảnh báo LogSentry AI', {
+            body: `${alert.severity}: ${alert.message}`,
+            icon: '/static/icon.png'
+        });
+    }
+}
+
+// Xử lý cảnh báo
+async function resolveAlert(alertId) {
+    try {
+        const response = await fetch(`/api/alerts/${alertId}/resolve`, {
+            method: 'POST'
+        });
+
+        if (response.ok) {
+            location.reload();
+        }
+    } catch (error) {
+        console.error('Lỗi khi xử lý cảnh báo:', error);
+    }
+}
+
+// Yêu cầu quyền thông báo
+if (Notification.permission === 'default') {
+    Notification.requestPermission();
+}
+
+// Tải dữ liệu khi trang được tải
+document.addEventListener('DOMContentLoaded', function() {
+    loadDashboardData();
+
+    // Làm mới dữ liệu mỗi 10 giây (changed from 30)
+    setInterval(loadDashboardData, 10000);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,29 @@
+[Unit]
+Description=LogSentry AI - Log Shipper
+After=network.target
+
+[Service]
+Type=simple
+User=nobody
+Group=nogroup
+WorkingDirectory=/opt/logsentry-shipper
+ExecStart=/usr/bin/python3 /opt/logsentry-shipper/log_shipper.py \
+    --log-file /var/log/application.log \
+    --api-url http://logsentry-server:5000 \
+    --api-key logsentry-api-key-change-in-production \
+    --service my-application \
+    --host %H
+
+Restart=always
+RestartSec=10
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/
+ReadWritePaths=/var/log
+
+[Install]
+WantedBy=multi-user.target
