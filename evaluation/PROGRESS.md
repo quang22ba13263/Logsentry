@@ -13,8 +13,8 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   tại `README.md` và config.
 - [x] Protocol, BGL/HDFS YAML config và random seed `42` đã tạo.
 - [x] Python/dependency runtime đã được kiểm tra; 13 unit test evaluation pass.
-- [ ] Tạo `manifest.json` cho một run thực tế, gồm commit, package version và
-  dataset hash đã xác minh runtime.
+- [x] Runner BGL đã tạo `manifest.json`, checksum input/config, `split.csv`,
+  `predictions.csv`, `metrics.json` và `run_config.yaml` tại output bị ignore.
 
 ## B. BGL v1
 
@@ -28,9 +28,11 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   trên validation, prediction có reason.
 - [x] Log-only Isolation Forest baseline: feature/scaler/model fit train-normal;
   score chuẩn hóa bằng distribution train-normal.
-- [ ] Ghi và khóa `split.csv` versioned cho run BGL.
-- [ ] Tích hợp Rule + IF vào runner CLI `run_bgl.py`; export predictions,
-  metrics, confusion matrix và manifest.
+- [x] Rule baseline đã chạy qua CLI `run_bgl.py`; export split, prediction,
+  metric và manifest thành công.
+- [ ] Khóa artifact bằng run ID mới cho mỗi lần chạy; runner hiện ghi đè
+  `bgl_v1/`, nên `split.csv` chưa là immutable versioned artifact.
+- [ ] Tích hợp IF vào runner CLI và export confusion matrix.
 - [ ] Tune IF threshold chỉ trên validation, sau đó chạy test đúng một lần.
 - [ ] DeepLog BGL, VAR data-quality gate/N/A statement, log-only fusion và báo
   cáo BGL final.
@@ -57,8 +59,10 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   3.13.15. Cần dùng đúng interpreter của venv mong muốn trước final run và ghi
   vào manifest.
 - [!] Không được báo cáo F1 hiện tại như kết quả chính thức: chưa có artifact
-  immutable (`split.csv`, manifest, predictions) và IF chưa calibration qua
-  validation.
+  immutable versioned và IF chưa calibration qua validation. Rule preliminary
+  chọn threshold `0.0` trên validation, dẫn đến mọi test sample bị dự đoán là
+  anomaly (TP=8, FP=12, TN=0, FN=0; F1=0.5714); cần error analysis/policy
+  review, không được tune theo test.
 - [!] Workspace có thay đổi ngoài benchmark không nằm trong commit benchmark:
   `File_structure.md`, nhóm `scripts/`, cùng một số file root. Ngoài ra tại
   thời điểm audit, `evaluation/reports/.gitkeep` bị xóa và
