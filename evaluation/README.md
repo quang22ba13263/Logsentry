@@ -35,10 +35,20 @@ Artifact runtime phải nằm ở `data/processed/evaluation/<run_id>/` và mode
 
 ## Môi trường đã đóng băng cho protocol v1
 
-- Python: `3.14.6`
-- `pandas`, `numpy`, `scikit-learn`, `tensorflow`: chưa được cài trong môi
-  trường xác minh ngày 2026-09-06. Cài các dependency từ requirements trước
-  khi chạy benchmark và ghi chính xác version vào `manifest.json` của run.
+- Virtual environment: `.venv` (metadata: Python `3.13.13`).
+
+| Package | Version trong `.venv` | Yêu cầu tối thiểu trong `requirements.txt` |
+| --- | --- | --- |
+| `pandas` | `3.0.2` | `>=1.5.0` |
+| `numpy` | `2.4.4` | `>=1.23.0` |
+| `scikit-learn` | `1.8.0` | `>=1.2.0` |
+| `tensorflow` | `2.21.0` | `>=2.12.0` |
+
+Tại thời điểm kiểm tra (2026-09-06), interpreter `.venv\\Scripts\\python.exe`
+không khởi chạy được vì base Python 3.13 trong WindowsApps không còn truy cập
+được. Các version trên được đọc từ metadata `*.dist-info` trong venv, không
+phải từ một import runtime thành công. Sửa/tạo lại venv trước khi chạy
+benchmark và ghi lại các version runtime đã xác minh vào `manifest.json`.
 - Random seed chung: `42` (NumPy, scikit-learn, TensorFlow).
 
 ## Chạy benchmark
