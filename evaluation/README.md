@@ -33,22 +33,38 @@ evaluation/
 Artifact runtime phải nằm ở `data/processed/evaluation/<run_id>/` và model ở
 `data/models/evaluation/<run_id>/`; cả hai đều bị Git ignore.
 
-## Môi trường đã đóng băng cho protocol v1
+## Môi trường đã xác minh cho protocol v1
 
-- Virtual environment: `.venv` (metadata: Python `3.13.13`).
+Kiểm tra ngày 2026-09-06 bằng interpreter đang hoạt động:
 
-| Package | Version trong `.venv` | Yêu cầu tối thiểu trong `requirements.txt` |
+- Python: `3.13.15` tại `C:\Program Files\Python313\python.exe`.
+- Repository hiện không có `.venv` hoặc `pyvenv.cfg`; interpreter trên là Python
+  cài hệ thống, không phải virtual environment cục bộ. Nếu dùng venv ở nơi khác,
+  hãy chạy lại các lệnh kiểm tra bên dưới từ interpreter của venv đó và ghi vào
+  `manifest.json` của từng run.
+- `python -m pip check`: pass, không có dependency hỏng.
+
+| Package | Version đã import | Yêu cầu tối thiểu trong `requirements.txt` |
 | --- | --- | --- |
-| `pandas` | `3.0.2` | `>=1.5.0` |
-| `numpy` | `2.4.4` | `>=1.23.0` |
-| `scikit-learn` | `1.8.0` | `>=1.2.0` |
+| `pandas` | `3.0.5` | `>=1.5.0` |
+| `numpy` | `2.5.2` | `>=1.23.0` |
+| `scikit-learn` | `1.9.0` | `>=1.2.0` |
 | `tensorflow` | `2.21.0` | `>=2.12.0` |
 
-Tại thời điểm kiểm tra (2026-09-06), interpreter `.venv\\Scripts\\python.exe`
-không khởi chạy được vì base Python 3.13 trong WindowsApps không còn truy cập
-được. Các version trên được đọc từ metadata `*.dist-info` trong venv, không
-phải từ một import runtime thành công. Sửa/tạo lại venv trước khi chạy
-benchmark và ghi lại các version runtime đã xác minh vào `manifest.json`.
+Các package trên đã được import runtime thành công. `Flask 3.1.3`,
+`SQLAlchemy 2.0.52` và `statsmodels 0.15.0` cũng import được. Bộ 11 unit test
+trong `evaluation/tests` pass với interpreter này.
+
+Trước khi chạy benchmark chính thức, lưu output của các lệnh sau vào
+`manifest.json` để gắn kết quả với đúng môi trường thực thi:
+
+```bash
+python --version
+python -m pip check
+python -m pip show pandas numpy scikit-learn tensorflow
+python -m unittest discover -s evaluation/tests -t . -v
+```
+
 - Random seed chung: `42` (NumPy, scikit-learn, TensorFlow).
 
 ## Chạy benchmark
