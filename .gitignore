@@ -131,11 +131,14 @@ instance/
 *.sqlite3
 
 # Data files
+Dataset/
 data/raw/*.log
 data/raw/*.jsonl
 data/processed/*.csv
 data/models/*.pkl
 data/models/*.h5
+data/processed/evaluation/
+data/models/evaluation/
 
 # Keep directory structure
 !data/.gitkeep

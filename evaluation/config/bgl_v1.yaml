@@ -1,0 +1,37 @@
+version: bgl_v1
+dataset:
+  name: BGL_2k
+  structured_log_path: Dataset/BGL/BGL_2k.log_structured.csv
+  sha256: 3fe74103c0b02a28514534e2a47257a3f770135ca61afd425bbd3b9d6a31fe26
+sample:
+  kind: event_count_window
+  window_size: 20
+  stride: 20
+split:
+  strategy: chronological
+  train_fraction: 0.60
+  validation_fraction: 0.20
+  test_fraction: 0.20
+random_seed: 42
+features:
+  allowed_event_columns: [timestamp, host, service, level, message, template_id, template]
+  template_vectorizer: count
+  scaler: robust
+detectors:
+  log_only_rule:
+    score: fraction_triggered_rules
+    train_normal_percentile: 99
+  isolation_forest:
+    n_estimators: 100
+    max_samples: auto
+    contamination: auto
+  deeplog:
+    sequence_length: 10
+    score_aggregation: max
+fusion:
+  name: log_only_fusion
+  tuning_split: validation
+output:
+  run_id: bgl_v1
+  processed_dir: data/processed/evaluation/bgl_v1
+  models_dir: data/models/evaluation/bgl_v1

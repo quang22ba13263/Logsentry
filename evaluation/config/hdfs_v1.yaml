@@ -1,0 +1,36 @@
+version: hdfs_v1_smoke
+dataset:
+  name: HDFS_v1
+  event_traces_path: Dataset/HDFS_v1/preprocessed/Event_traces.csv
+  event_traces_sha256: 68cd80eac007b28f5ca10d8acceb104d61067e74e1c4eef2c6c6015b2d769d3c
+  occurrence_matrix_path: Dataset/HDFS_v1/preprocessed/Event_occurrence_matrix.csv
+  occurrence_matrix_sha256: 59ab8a8a6d12f18f41b35e9eb0113655825b9bf9d9787c1a6f72fface7cc01a7
+sample:
+  kind: block_trace
+split:
+  strategy: chronological_smoke
+  train_normal_limit: 20000
+  validation_limit: 5000
+  test_limit: 10000
+random_seed: 42
+features:
+  occurrence_column_pattern: '^E\d+$'
+  scaler: robust
+detectors:
+  log_only_rule:
+    score: fraction_triggered_rules
+    train_normal_percentile: 99
+  isolation_forest:
+    n_estimators: 100
+    max_samples: auto
+    contamination: auto
+  deeplog:
+    sequence_length: 10
+    score_aggregation: max
+fusion:
+  name: log_only_fusion
+  tuning_split: validation
+output:
+  run_id: hdfs_v1_smoke
+  processed_dir: data/processed/evaluation/hdfs_v1
+  models_dir: data/models/evaluation/hdfs_v1
