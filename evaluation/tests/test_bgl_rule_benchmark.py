@@ -23,10 +23,14 @@ class BglRuleBenchmarkTests(unittest.TestCase):
         self.assertTrue(any(window.ground_truth for window in splits.test))
 
     def test_rule_benchmark_returns_prediction_contract_and_metrics(self) -> None:
-        rows, metrics = evaluate_bgl_rule(chronological_bgl_split(self.windows), RuleConfig())
-        self.assertEqual(20, len(rows))
+        result = evaluate_bgl_rule(chronological_bgl_split(self.windows), RuleConfig())
+        self.assertEqual(20, len(result.test_rows))
+        self.assertEqual(20, len(result.validation_rows))
+        self.assertIn(result.selected_threshold, {0.0, 0.2, 0.4, 0.6, 0.8, 1.0})
+        metrics = result.test_metrics
         self.assertEqual({"tp", "fp", "tn", "fn", "precision", "recall", "f1"}, set(metrics))
-        self.assertTrue(all("ground_truth" in row and "reason" in row for row in rows))
+        self.assertTrue(all("ground_truth" in row and "reason" in row for row in result.test_rows))
+        self.assertTrue(all(row["threshold"] == result.selected_threshold for row in result.validation_rows))
 
 
 if __name__ == "__main__":

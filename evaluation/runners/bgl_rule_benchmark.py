@@ -21,6 +21,14 @@ class BglSplits:
     test: tuple[BglWindow, ...]
 
 
+@dataclass(frozen=True)
+class BglRuleBenchmarkResult:
+    validation_rows: list[dict[str, object]]
+    test_rows: list[dict[str, object]]
+    selected_threshold: float
+    test_metrics: dict[str, float | int]
+
+
 def chronological_bgl_split(
     windows: Sequence[BglWindow], train_fraction: float = 0.6, validation_fraction: float = 0.2
 ) -> BglSplits:
@@ -36,21 +44,9 @@ def chronological_bgl_split(
     return splits
 
 
-def evaluate_bgl_rule(
-    splits: BglSplits, config: RuleConfig
-) -> tuple[list[dict[str, object]], dict[str, float | int]]:
-    """Fit only on normal train data and return test predictions plus metrics."""
+def _metrics(rows: Sequence[dict[str, object]]) -> dict[str, float | int]:
+    """Calculate binary metrics from prediction-contract rows."""
 
-    transformer = BglLogOnlyFeatureTransformer()
-    transformer.fit([window for window in splits.train if not window.ground_truth])
-    train = transformer.transform(splits.train)
-    test = transformer.transform(splits.test)
-    detector = LogOnlyRuleDetector(config).fit([sample.features for sample in train if not sample.ground_truth])
-    predictions = detector.detect([sample.features for sample in test])
-    rows = [
-        {"sample_id": sample.sample_id, "ground_truth": sample.ground_truth, "detector": "log_only_rule", "raw_score": prediction.raw_score, "normalized_score": prediction.normalized_score, "prediction": prediction.prediction, "reason": prediction.reason}
-        for sample, prediction in zip(test, predictions, strict=True)
-    ]
     tp = sum(row["prediction"] == 1 and row["ground_truth"] == 1 for row in rows)
     fp = sum(row["prediction"] == 1 and row["ground_truth"] == 0 for row in rows)
     tn = sum(row["prediction"] == 0 and row["ground_truth"] == 0 for row in rows)
@@ -58,4 +54,44 @@ def evaluate_bgl_rule(
     precision = tp / (tp + fp) if tp + fp else 0.0
     recall = tp / (tp + fn) if tp + fn else 0.0
     f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
-    return rows, {"tp": tp, "fp": fp, "tn": tn, "fn": fn, "precision": precision, "recall": recall, "f1": f1}
+    return {"tp": tp, "fp": fp, "tn": tn, "fn": fn, "precision": precision, "recall": recall, "f1": f1}
+
+
+def _rows(samples: Sequence[BglFeatureSample], predictions: Sequence[object], split: str) -> list[dict[str, object]]:
+    return [
+        {"sample_id": sample.sample_id, "split": split, "ground_truth": sample.ground_truth, "detector": "log_only_rule", "raw_score": prediction.raw_score, "normalized_score": prediction.normalized_score, "threshold": None, "prediction": prediction.prediction, "reason": prediction.reason}
+        for sample, prediction in zip(samples, predictions, strict=True)
+    ]
+
+
+def _select_validation_threshold(rows: Sequence[dict[str, object]]) -> float:
+    """Choose the F1-maximizing threshold exclusively from validation scores."""
+
+    candidates = sorted({0.0, 1.0, *(float(row["normalized_score"]) for row in rows)})
+    best_threshold, best_f1 = candidates[0], -1.0
+    for threshold in candidates:
+        trial_rows = [{**row, "prediction": int(float(row["normalized_score"]) >= threshold)} for row in rows]
+        f1 = float(_metrics(trial_rows)["f1"])
+        if f1 > best_f1:
+            best_threshold, best_f1 = threshold, f1
+    return best_threshold
+
+
+def evaluate_bgl_rule(splits: BglSplits, config: RuleConfig) -> BglRuleBenchmarkResult:
+    """Fit on train-normal, tune on validation, then evaluate test once."""
+
+    transformer = BglLogOnlyFeatureTransformer()
+    transformer.fit([window for window in splits.train if not window.ground_truth])
+    train = transformer.transform(splits.train)
+    validation = transformer.transform(splits.validation)
+    test = transformer.transform(splits.test)
+    scoring_detector = LogOnlyRuleDetector(config).fit([sample.features for sample in train if not sample.ground_truth])
+    validation_rows = _rows(validation, scoring_detector.detect([sample.features for sample in validation]), "validation")
+    threshold = _select_validation_threshold(validation_rows)
+    selected_config = RuleConfig(normal_percentile=config.normal_percentile, score_threshold=threshold)
+    final_detector = LogOnlyRuleDetector(selected_config).fit([sample.features for sample in train if not sample.ground_truth])
+    validation_rows = _rows(validation, final_detector.detect([sample.features for sample in validation]), "validation")
+    test_rows = _rows(test, final_detector.detect([sample.features for sample in test]), "test")
+    for row in [*validation_rows, *test_rows]:
+        row["threshold"] = threshold
+    return BglRuleBenchmarkResult(validation_rows, test_rows, threshold, _metrics(test_rows))

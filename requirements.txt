@@ -13,6 +13,7 @@ statsmodels>=0.14.0
 
 # Utilities
 python-dateutil>=2.8.0
+PyYAML>=6.0
 
 # Visualization
 matplotlib>=3.7.0

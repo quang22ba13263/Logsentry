@@ -20,7 +20,8 @@ features:
 detectors:
   log_only_rule:
     score: fraction_triggered_rules
-    train_normal_percentile: 99
+    normal_percentile: 99
+    threshold_policy: maximize_validation_f1
   isolation_forest:
     n_estimators: 100
     max_samples: auto
