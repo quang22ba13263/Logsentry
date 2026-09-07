@@ -42,8 +42,16 @@ def main() -> None:
     deep_threshold=_select_validation_threshold(deep_validation_rows)
     test_deep=deeplog.score([x.sequence for x in test])
     deep_test_rows=[{"ground_truth":x.ground_truth,"normalized_score":s,"prediction":int(s>=deep_threshold)} for x,s in zip(test,test_deep)]
+    fusion_validation=[]
+    fusion_test=[]
+    for if_row, deep_row in zip(validation_rows, deep_validation_rows):
+        fusion_validation.append({"ground_truth":if_row["ground_truth"],"normalized_score":(if_row["normalized_score"]+deep_row["normalized_score"])/2,"prediction":0})
+    fusion_threshold=_select_validation_threshold(fusion_validation)
+    for if_row, deep_row in zip(test_rows, deep_test_rows):
+        score=(if_row["normalized_score"]+deep_row["normalized_score"])/2
+        fusion_test.append({"ground_truth":if_row["ground_truth"],"normalized_score":score,"prediction":int(score>=fusion_threshold)})
     import json
-    metrics={"isolation_forest":_metrics(test_rows),"deeplog":_metrics(deep_test_rows),"if_validation_threshold":threshold,"deeplog_validation_threshold":deep_threshold,"deeplog_train_limit":len(deep_train),"deeplog_epochs":args.deeplog_epochs}
+    metrics={"isolation_forest":_metrics(test_rows),"deeplog":_metrics(deep_test_rows),"log_only_fusion":_metrics(fusion_test),"if_validation_threshold":threshold,"deeplog_validation_threshold":deep_threshold,"fusion_validation_threshold":fusion_threshold,"fusion_weights":{"isolation_forest":0.5,"deeplog":0.5},"deeplog_train_limit":len(deep_train),"deeplog_epochs":args.deeplog_epochs}
     (output / "metrics.json").write_text(json.dumps(metrics,indent=2),encoding="utf-8")
     print({"output":str(output),"train":len(train),"validation_anomaly":sum(x.ground_truth for x in validation),"test_anomaly":sum(x.ground_truth for x in test),"metrics":metrics})
 if __name__ == "__main__": main()
