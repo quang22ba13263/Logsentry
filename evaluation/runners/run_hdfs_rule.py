@@ -39,6 +39,7 @@ def main() -> None:
     parser.add_argument("--config", type=Path, default=ROOT / "evaluation/config/hdfs_v1_final.yaml")
     parser.add_argument("--split-artifact", type=Path, required=True)
     parser.add_argument("--run-id", required=True)
+    parser.add_argument("--normal-percentile", type=float)
     args = parser.parse_args()
     if not re.fullmatch(r"[A-Za-z0-9_-]+", args.run_id):
         raise ValueError("run-id may contain only letters, digits, underscores and hyphens")
@@ -74,11 +75,12 @@ def main() -> None:
             raise RuntimeError("Train or validation label differs from frozen split")
     train_normal = [trace for trace in train if not trace.ground_truth]
     rule_config = config["detectors"]["log_only_rule"]
+    normal_percentile = args.normal_percentile or float(rule_config["normal_percentile"])
     transformer = HdfsLogOnlyRuleFeatureTransformer().fit(train_normal)
     train_features = transformer.transform(train_normal)
     validation_features = transformer.transform(validation)
     detector = HdfsLogOnlyRuleDetector(
-        RuleConfig(normal_percentile=float(rule_config["normal_percentile"]))
+        RuleConfig(normal_percentile=normal_percentile)
     ).fit([item.features for item in train_features])
     predictions = detector.detect([item.features for item in validation_features])
     rows = [
@@ -97,7 +99,7 @@ def main() -> None:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
         writer.writeheader()
         writer.writerows(rows)
-    metrics = {"evaluation_phase": "development_validation_only", "metric_split": "validation", "hdfs_log_only_rule": _metrics(rows), "selected_validation_threshold": threshold, "train_normal_samples": len(train_normal), "validation_samples": len(validation)}
+    metrics = {"evaluation_phase": "development_validation_only", "metric_split": "validation", "hdfs_log_only_rule": _metrics(rows), "selected_validation_threshold": threshold, "normal_percentile": normal_percentile, "train_normal_samples": len(train_normal), "validation_samples": len(validation)}
     (output / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     (output / "run_config.yaml").write_text(config_path.read_text(encoding="utf-8"), encoding="utf-8")
     manifest = {"run_id": args.run_id, "evaluation_phase": "development_validation_only", "upstream_split_artifact": str(split_artifact), "upstream_split_sha256": upstream_manifest["split_sha256"], "config_sha256": sha256(config_path), "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), "timestamp_utc": datetime.now(timezone.utc).isoformat(), "test_scored": False, "test_labels_exported": False}
