@@ -7,6 +7,7 @@ import csv
 import hashlib
 import json
 import platform
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -36,16 +37,21 @@ def sha256(path: Path) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run BGL v1 log-only Rule benchmark")
     parser.add_argument("--config", type=Path, default=ROOT / "evaluation/config/bgl_v1.yaml")
+    parser.add_argument("--run-id", required=True, help="Immutable output directory name, e.g. bgl_v1_20260907")
     args = parser.parse_args()
     config_path = args.config.resolve()
     config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", args.run_id):
+        raise ValueError("run-id may contain only letters, digits, underscores and hyphens")
     source = (ROOT / config["dataset"]["structured_log_path"]).resolve()
     actual_hash = sha256(source)
     if actual_hash != config["dataset"]["sha256"]:
         raise RuntimeError(f"Dataset checksum mismatch: {actual_hash}")
 
-    output = (ROOT / config["output"]["processed_dir"]).resolve()
-    output.mkdir(parents=True, exist_ok=True)
+    output = (ROOT / config["output"]["processed_dir"]).resolve().parent / args.run_id
+    if output.exists():
+        raise FileExistsError(f"Refusing to overwrite existing run artifact: {output}")
+    output.mkdir(parents=True)
     sample = config["sample"]
     splits = chronological_bgl_split(
         make_bgl_event_windows(load_bgl_events(source), size=sample["window_size"], stride=sample["stride"]),
@@ -84,8 +90,13 @@ def main() -> None:
         writer.writeheader(); writer.writerows(rows)
     metrics = {"log_only_rule": result.test_metrics, "log_only_isolation_forest": _metrics(test_if_rows)}
     (output / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+    with (output / "confusion_matrices.csv").open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=["detector", "tp", "fp", "tn", "fn"])
+        writer.writeheader()
+        for detector_name, detector_metrics in metrics.items():
+            writer.writerow({"detector": detector_name, **{key: detector_metrics[key] for key in ("tp", "fp", "tn", "fn")}})
     (output / "run_config.yaml").write_text(config_path.read_text(encoding="utf-8"), encoding="utf-8")
-    manifest = {"dataset_sha256": actual_hash, "config_sha256": sha256(config_path), "timestamp_utc": datetime.now(timezone.utc).isoformat(), "python": sys.version, "platform": platform.platform(), "selected_validation_threshold": result.selected_threshold, "split_sha256": sha256(output / "split.csv"), "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()}
+    manifest = {"run_id": args.run_id, "dataset_sha256": actual_hash, "config_sha256": sha256(config_path), "timestamp_utc": datetime.now(timezone.utc).isoformat(), "python": sys.version, "platform": platform.platform(), "selected_validation_threshold": result.selected_threshold, "selected_if_validation_threshold": if_threshold, "split_sha256": sha256(output / "split.csv"), "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()}
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print(json.dumps({"output": str(output), "metrics": metrics, "thresholds": {"log_only_rule": result.selected_threshold, "log_only_isolation_forest": if_threshold}}, indent=2))
 

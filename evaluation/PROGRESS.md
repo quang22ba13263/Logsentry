@@ -1,6 +1,6 @@
 # Tiến độ log-only evaluation
 
-Trạng thái kiểm tra: 2026-09-06. Checklist này theo
+Trạng thái kiểm tra: 2026-09-07. Checklist này theo
 [`KE_HOACH_DANH_GIA_LOG_ONLY_CHINH_THUC.md`](../KE_HOACH_DANH_GIA_LOG_ONLY_CHINH_THUC.md)
 và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứng.
 
@@ -30,12 +30,12 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   score chuẩn hóa bằng distribution train-normal.
 - [x] Rule baseline đã chạy qua CLI `run_bgl.py`; export split, prediction,
   metric và manifest thành công.
-- [ ] Khóa artifact bằng run ID mới cho mỗi lần chạy; runner hiện ghi đè
-  `bgl_v1/`, nên `split.csv` chưa là immutable versioned artifact.
+- [x] Runner bắt buộc `--run-id`, tạo artifact `bgl_v1_20260907/` và từ chối
+  lần chạy thứ hai cùng ID; `split.csv` không còn bị overwrite.
 - [x] IF đã tích hợp vào `run_bgl.py`: `RobustScaler`/model fit train-normal,
   threshold `0.8958333333333334` chọn từ validation, prediction/metric được
   export cùng Rule.
-- [ ] Export confusion matrix CSV/figure cho Rule và IF.
+- [x] Export `confusion_matrices.csv` cho Rule và IF trong artifact BGL.
 - [ ] DeepLog BGL, VAR data-quality gate/N/A statement, log-only fusion và báo
   cáo BGL final.
 
@@ -67,6 +67,9 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   R=0.7500, F1=0.7059. Threshold được chọn đúng từ validation, nhưng test đã
   chạy lặp khi kiểm tra runner và output `bgl_v1/` bị ghi đè; cần run ID bất
   biến trước khi công bố kết quả chính thức.
+- [!] Artifact `bgl_v1_20260907/` hiện là immutable diagnostic run có đầy đủ
+  split/prediction/metric/confusion matrix/manifest. Không gọi là final vì
+  DeepLog, fusion, error analysis và policy Rule vẫn chưa hoàn tất.
 - [!] Workspace có thay đổi ngoài benchmark không nằm trong commit benchmark:
   `File_structure.md`, nhóm `scripts/`, cùng một số file root. Ngoài ra tại
   thời điểm audit, `evaluation/reports/.gitkeep` bị xóa và
