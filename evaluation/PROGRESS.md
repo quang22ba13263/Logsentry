@@ -113,6 +113,9 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   `hdfs_v1_final_deeplog_dev_20260907/` train deterministic 10.000 normal
   trace/1 epoch, chỉ score validation: P=0.9975, R=0.7671, F1=0.8673,
   threshold=0.9998582827392966; không có prediction/nhãn test.
+- [x] Báo cáo validation-only HDFS đã tổng hợp tại
+  `reports/hdfs_validation_summary.md`; nêu split seal, config, P/R/F1,
+  artifact/commit và cấm diễn giải thành kết quả test cuối.
 
 ## D. Vấn đề / quyết định cần theo dõi
 
