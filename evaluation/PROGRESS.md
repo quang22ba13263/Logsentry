@@ -12,7 +12,7 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
 - [x] SHA-256 BGL structured CSV, HDFS traces và HDFS occurrence matrix đã ghi
   tại `README.md` và config.
 - [x] Protocol, BGL/HDFS YAML config và random seed `42` đã tạo.
-- [x] Python/dependency runtime đã được kiểm tra; 13 unit test evaluation pass.
+- [x] Python/dependency runtime đã được kiểm tra; 16 unit test evaluation pass.
 - [x] Runner BGL đã tạo `manifest.json`, checksum input/config, `split.csv`,
   `predictions.csv`, `metrics.json` và `run_config.yaml` tại output bị ignore.
 
@@ -65,17 +65,35 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
 - [x] Smoke split immutable đã tạo tại `hdfs_v1_smoke_20260907/split.csv`.
 - [x] HDFS smoke IF đã chạy tại `hdfs_v1_if_smoke_20260907/`: threshold validation
   `0.93805`, test P=0.1852, R=0.5878, F1=0.2817.
-- [ ] HDFS DeepLog smoke đang bị block ở cấu hình 20.000 trace: split được tạo
-  nhưng process TensorFlow chưa hoàn tất metric trong thời gian kiểm tra; cần
-  memory/runtime profiling hoặc smoke train subset versioned trước khi kết luận.
+- [x] HDFS DeepLog smoke batched đã hoàn tất trên subset versioned; giới hạn
+  2.000 normal traces/1 epoch được ghi trong artifact để không nhầm với final.
 - [!] DeepLog subset 2.000 trace / 1 epoch cũng bị dừng: implementation hiện
   gọi TensorFlow predict theo từng context, nên validation/test HDFS tạo quá
   nhiều inference call. Cần batch inference trong `LogOnlyDeepLog.score()`
   trước khi thử lại; không ghi metric từ job bị dừng.
 - [x] `LogOnlyDeepLog.score()` đã đổi sang batched inference (4.096 context/lô);
   smoke unit pass. Cần rerun HDFS smoke để xác nhận runtime/metric.
-- [ ] HDFS smoke split, IF + DeepLog; Rule chỉ thêm khi feature policy đã rõ.
-- [ ] HDFS final split/benchmark, log-only fusion và evidence artifact.
+- [x] HDFS DeepLog batched smoke hoàn tất tại `hdfs_v1_deeplog_batched_cd3317b/`:
+  train subset 2.000 normal trace/1 epoch, threshold validation `0.9995723`,
+  test P=0.9618, R=0.6450, F1=0.7721.
+- [!] Đây là DeepLog smoke subset có version rõ ràng, không phải HDFS final;
+  final cần train split/protocol đã khóa và artifact đầy đủ.
+- [x] HDFS equal-weight log-only fusion smoke hoàn tất tại `hdfs_v1_fusion_smoke/`:
+  threshold validation `0.942025`, test P=0.1371, R=0.4990, F1=0.2150.
+- [!] Fusion smoke kém hơn DeepLog (F1=0.7721) do IF false positive cao; không
+  chỉnh weight theo test. Nếu tiếp tục fusion, weight/min-votes chỉ được chọn
+  trên validation và cần ghi config version riêng.
+- [x] BGL/HDFS runner hiện mặc định ở `development_validation_only`: không
+  score test, không export nhãn test; test chỉ mở qua cờ rõ ràng `--final-test`.
+- [x] Có unit test xác nhận Rule BGL validation-only không sinh test rows.
+- [x] Guard đã chạy kiểm chứng end-to-end: BGL artifact
+  `bgl_dev_guard_20260907/` có 0 test prediction/0 nhãn test; HDFS artifact
+  `hdfs_dev_guard_20260907/` chỉ ghi validation metric (DeepLog F1=0.7488 với
+  2.000 normal trace, 1 epoch). Đây là checkpoint tuning, không phải final.
+- [ ] Định nghĩa và kiểm thử HDFS Rule log-only (trace length/entropy/unseen
+  event) không dùng `Label`, `Type`, `BlockId`; chỉ thêm vào fusion nếu score
+  đủ phân biệt trên validation.
+- [ ] Hoàn thiện HDFS final-scale split/benchmark artifact (chưa chạy test).
 
 ## D. Vấn đề / quyết định cần theo dõi
 
@@ -125,7 +143,10 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
 
 ## Bước kế tiếp bắt buộc
 
-1. Viết và test HDFS adapter trước khi chạy smoke benchmark.
-2. Chạy HDFS smoke IF + DeepLog, rồi HDFS final benchmark.
-3. Chỉ sau khi toàn bộ benchmark hoàn tất mới mở một pha tuning riêng, được
-   ghi version/config và không dùng test set để chọn thông số.
+1. Hoàn thiện HDFS Rule feature policy và test leakage trước khi thêm fusion.
+2. Hoàn thiện runner/artifact final-scale ở chế độ development (train +
+   validation), chưa gọi `--final-test`.
+3. Mở pha tuning versioned: thay đổi một nhóm thông số mỗi lần, đo trên
+   validation, lưu config/seed/metric; tuyệt đối không score test.
+4. Khi chọn được config tốt nhất trên validation, đóng băng config/model hash
+   và mới chạy `--final-test` đúng một lần để tạo báo cáo cuối.

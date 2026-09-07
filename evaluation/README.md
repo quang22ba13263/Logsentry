@@ -52,7 +52,7 @@ Kiểm tra ngày 2026-09-06 bằng interpreter đang hoạt động:
 | `tensorflow` | `2.21.0` | `>=2.12.0` |
 
 Các package trên đã được import runtime thành công. `Flask 3.1.3`,
-`SQLAlchemy 2.0.52` và `statsmodels 0.15.0` cũng import được. Bộ 11 unit test
+`SQLAlchemy 2.0.52` và `statsmodels 0.15.0` cũng import được. Bộ 16 unit test
 trong `evaluation/tests` pass với interpreter này.
 
 Trước khi chạy benchmark chính thức, lưu output của các lệnh sau vào
@@ -67,14 +67,21 @@ python -m unittest discover -s evaluation/tests -t . -v
 
 - Random seed chung: `42` (NumPy, scikit-learn, TensorFlow).
 
-## Chạy benchmark
+## Chạy benchmark và khóa test hold-out
 
-Sau khi các runner được triển khai, dùng các config đã versioned:
+Mặc định, runner chỉ fit train-normal và đo/tune trên **validation**. Nó không
+score test split, và `split.csv` cũng không ghi nhãn test. Dùng mode này cho mọi
+vòng phát triển/tuning; mỗi vòng phải có `run_id` riêng:
 
 ```bash
-python evaluation/runners/run_bgl.py --config evaluation/config/bgl_v1.yaml
-python evaluation/runners/run_hdfs.py --config evaluation/config/hdfs_v1.yaml
+python evaluation/runners/run_bgl.py --config evaluation/config/bgl_v1.yaml --run-id bgl_dev_v2
+python evaluation/runners/run_hdfs_smoke.py --run-id hdfs_dev_v2 --deeplog-train-limit 2000 --deeplog-epochs 1
 ```
+
+Chỉ sau khi ghi lại và khóa hẳn config/threshold/model version, mới thêm
+`--final-test` để chạy **một lần** test hold-out. Không dùng output test cũ để
+chọn hyperparameter, threshold hoặc fusion weight. Artifact tạo trước guard này
+chỉ là diagnostic, không phải kết quả cuối.
 
 Xem [evaluation_protocol.md](evaluation_protocol.md) để biết split, ngăn rò rỉ
 nhãn và quy tắc đánh giá bắt buộc.

@@ -24,7 +24,13 @@ from evaluation.detectors.log_only_isolation_forest import IsolationForestConfig
 from evaluation.detectors.log_only_deeplog import DeepLogConfig, LogOnlyDeepLog
 from evaluation.detectors.log_only_rule import RuleConfig
 from evaluation.features.log_only_features import BglLogOnlyFeatureTransformer
-from evaluation.runners.bgl_rule_benchmark import _metrics, _select_validation_threshold, chronological_bgl_split, evaluate_bgl_rule
+from evaluation.runners.bgl_rule_benchmark import (
+    _metrics,
+    _select_validation_threshold,
+    chronological_bgl_split,
+    evaluate_bgl_rule,
+    evaluate_bgl_rule_validation,
+)
 
 
 def sha256(path: Path) -> str:
@@ -36,9 +42,14 @@ def sha256(path: Path) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run BGL v1 log-only Rule benchmark")
+    parser = argparse.ArgumentParser(description="Run BGL v1 log-only benchmark")
     parser.add_argument("--config", type=Path, default=ROOT / "evaluation/config/bgl_v1.yaml")
     parser.add_argument("--run-id", required=True, help="Immutable output directory name, e.g. bgl_v1_20260907")
+    parser.add_argument(
+        "--final-test",
+        action="store_true",
+        help="Score the held-out test split. Use only after the configuration is frozen.",
+    )
     args = parser.parse_args()
     config_path = args.config.resolve()
     config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
@@ -59,12 +70,24 @@ def main() -> None:
         config["split"]["train_fraction"], config["split"]["validation_fraction"],
     )
     rule_config = config["detectors"]["log_only_rule"]
-    result = evaluate_bgl_rule(splits, RuleConfig(normal_percentile=rule_config["normal_percentile"]))
+    if args.final_test:
+        rule_result = evaluate_bgl_rule(
+            splits, RuleConfig(normal_percentile=rule_config["normal_percentile"])
+        )
+        rule_validation_rows = rule_result.validation_rows
+        rule_metrics = rule_result.test_metrics
+        rule_threshold = rule_result.selected_threshold
+    else:
+        rule_result = evaluate_bgl_rule_validation(
+            splits, RuleConfig(normal_percentile=rule_config["normal_percentile"])
+        )
+        rule_validation_rows = rule_result.validation_rows
+        rule_metrics = rule_result.validation_metrics
+        rule_threshold = rule_result.selected_threshold
 
     transformer = BglLogOnlyFeatureTransformer().fit([item for item in splits.train if not item.ground_truth])
     train_features = transformer.transform(splits.train)
     validation_features = transformer.transform(splits.validation)
-    test_features = transformer.transform(splits.test)
     feature_names = tuple(train_features[0].features)
     if_config = config["detectors"]["isolation_forest"]
     detector = LogOnlyIsolationForest(feature_names, IsolationForestConfig(
@@ -74,8 +97,6 @@ def main() -> None:
     validation_scores = detector.score([item.features for item in validation_features])
     validation_if_rows = [{"sample_id": item.sample_id, "split": "validation", "ground_truth": item.ground_truth, "detector": "log_only_isolation_forest", "raw_score": score.raw_score, "normalized_score": score.normalized_score, "threshold": None, "prediction": 0, "reason": "isolation_forest_log_feature"} for item, score in zip(validation_features, validation_scores, strict=True)]
     if_threshold = _select_validation_threshold(validation_if_rows)
-    test_scores = detector.score([item.features for item in test_features])
-    test_if_rows = [{"sample_id": item.sample_id, "split": "test", "ground_truth": item.ground_truth, "detector": "log_only_isolation_forest", "raw_score": score.raw_score, "normalized_score": score.normalized_score, "threshold": if_threshold, "prediction": int(score.normalized_score >= if_threshold), "reason": "isolation_forest_log_feature"} for item, score in zip(test_features, test_scores, strict=True)]
     for row in validation_if_rows:
         row["threshold"] = if_threshold
         row["prediction"] = int(float(row["normalized_score"]) >= if_threshold)
@@ -85,8 +106,6 @@ def main() -> None:
     validation_deep_scores = deeplog.score([item.sequence for item in splits.validation])
     validation_deep_rows = [{"sample_id": item.sample_id, "split": "validation", "ground_truth": item.ground_truth, "detector": "log_only_deeplog", "raw_score": score, "normalized_score": score, "threshold": None, "prediction": 0, "reason": "lstm_next_event_surprisal"} for item, score in zip(splits.validation, validation_deep_scores, strict=True)]
     deep_threshold = _select_validation_threshold(validation_deep_rows)
-    test_deep_scores = deeplog.score([item.sequence for item in splits.test])
-    test_deep_rows = [{"sample_id": item.sample_id, "split": "test", "ground_truth": item.ground_truth, "detector": "log_only_deeplog", "raw_score": score, "normalized_score": score, "threshold": deep_threshold, "prediction": int(score >= deep_threshold), "reason": "lstm_next_event_surprisal"} for item, score in zip(splits.test, test_deep_scores, strict=True)]
     for row in validation_deep_rows:
         row["threshold"] = deep_threshold; row["prediction"] = int(float(row["normalized_score"]) >= deep_threshold)
 
@@ -94,32 +113,34 @@ def main() -> None:
         writer = csv.DictWriter(handle, fieldnames=["sample_id", "split", "ground_truth"])
         writer.writeheader()
         for name, items in (("train", splits.train), ("validation", splits.validation), ("test", splits.test)):
-            writer.writerows({"sample_id": item.sample_id, "split": name, "ground_truth": item.ground_truth} for item in items)
-    rows = [*result.validation_rows, *result.test_rows, *validation_if_rows, *test_if_rows, *validation_deep_rows, *test_deep_rows]
+            writer.writerows(
+                {"sample_id": item.sample_id, "split": name, "ground_truth": item.ground_truth if args.final_test or name != "test" else ""}
+                for item in items
+            )
+    rows = [*rule_validation_rows, *validation_if_rows, *validation_deep_rows]
+    if args.final_test:
+        test_features = transformer.transform(splits.test)
+        test_scores = detector.score([item.features for item in test_features])
+        test_if_rows = [{"sample_id": item.sample_id, "split": "test", "ground_truth": item.ground_truth, "detector": "log_only_isolation_forest", "raw_score": score.raw_score, "normalized_score": score.normalized_score, "threshold": if_threshold, "prediction": int(score.normalized_score >= if_threshold), "reason": "isolation_forest_log_feature"} for item, score in zip(test_features, test_scores, strict=True)]
+        test_deep_scores = deeplog.score([item.sequence for item in splits.test])
+        test_deep_rows = [{"sample_id": item.sample_id, "split": "test", "ground_truth": item.ground_truth, "detector": "log_only_deeplog", "raw_score": score, "normalized_score": score, "threshold": deep_threshold, "prediction": int(score >= deep_threshold), "reason": "lstm_next_event_surprisal"} for item, score in zip(splits.test, test_deep_scores, strict=True)]
+        rows.extend([*rule_result.test_rows, *test_if_rows, *test_deep_rows])
     with (output / "predictions.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
         writer.writeheader(); writer.writerows(rows)
-    metrics = {"log_only_rule": result.test_metrics, "log_only_isolation_forest": _metrics(test_if_rows), "log_only_deeplog": _metrics(test_deep_rows)}
+    metric_split = "test" if args.final_test else "validation"
+    metrics = {"evaluation_phase": "final_test" if args.final_test else "development_validation_only", "metric_split": metric_split, "log_only_rule": rule_metrics, "log_only_isolation_forest": _metrics(test_if_rows if args.final_test else validation_if_rows), "log_only_deeplog": _metrics(test_deep_rows if args.final_test else validation_deep_rows)}
     (output / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     with (output / "confusion_matrices.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=["detector", "tp", "fp", "tn", "fn"])
         writer.writeheader()
-        for detector_name, detector_metrics in metrics.items():
+        for detector_name in ("log_only_rule", "log_only_isolation_forest", "log_only_deeplog"):
+            detector_metrics = metrics[detector_name]
             writer.writerow({"detector": detector_name, **{key: detector_metrics[key] for key in ("tp", "fp", "tn", "fn")}})
-    analysis_rows = []
-    for detector_name in metrics:
-        detector_rows = [row for row in rows if row["detector"] == detector_name and row["split"] == "test"]
-        false_positives = sorted((row for row in detector_rows if row["prediction"] == 1 and row["ground_truth"] == 0), key=lambda row: float(row["normalized_score"]), reverse=True)[:10]
-        false_negatives = sorted((row for row in detector_rows if row["prediction"] == 0 and row["ground_truth"] == 1), key=lambda row: float(row["normalized_score"]), reverse=True)[:10]
-        analysis_rows.extend({"error_type": "false_positive", **row} for row in false_positives)
-        analysis_rows.extend({"error_type": "false_negative", **row} for row in false_negatives)
-    with (output / "error_analysis.csv").open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=["error_type", *list(rows[0])])
-        writer.writeheader(); writer.writerows(analysis_rows)
     (output / "run_config.yaml").write_text(config_path.read_text(encoding="utf-8"), encoding="utf-8")
-    manifest = {"run_id": args.run_id, "dataset_sha256": actual_hash, "config_sha256": sha256(config_path), "timestamp_utc": datetime.now(timezone.utc).isoformat(), "python": sys.version, "platform": platform.platform(), "selected_validation_threshold": result.selected_threshold, "selected_if_validation_threshold": if_threshold, "selected_deeplog_validation_threshold": deep_threshold, "split_sha256": sha256(output / "split.csv"), "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()}
+    manifest = {"run_id": args.run_id, "evaluation_phase": metrics["evaluation_phase"], "dataset_sha256": actual_hash, "config_sha256": sha256(config_path), "timestamp_utc": datetime.now(timezone.utc).isoformat(), "python": sys.version, "platform": platform.platform(), "selected_validation_threshold": rule_threshold, "selected_if_validation_threshold": if_threshold, "selected_deeplog_validation_threshold": deep_threshold, "split_sha256": sha256(output / "split.csv"), "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()}
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-    print(json.dumps({"output": str(output), "metrics": metrics, "thresholds": {"log_only_rule": result.selected_threshold, "log_only_isolation_forest": if_threshold, "log_only_deeplog": deep_threshold}}, indent=2))
+    print(json.dumps({"output": str(output), "metrics": metrics, "thresholds": {"log_only_rule": rule_threshold, "log_only_isolation_forest": if_threshold, "log_only_deeplog": deep_threshold}}, indent=2))
 
 
 if __name__ == "__main__":

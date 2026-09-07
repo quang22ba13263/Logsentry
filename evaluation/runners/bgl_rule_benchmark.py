@@ -29,6 +29,15 @@ class BglRuleBenchmarkResult:
     test_metrics: dict[str, float | int]
 
 
+@dataclass(frozen=True)
+class BglRuleValidationResult:
+    """Development-only output; it deliberately contains no test prediction."""
+
+    validation_rows: list[dict[str, object]]
+    selected_threshold: float
+    validation_metrics: dict[str, float | int]
+
+
 def chronological_bgl_split(
     windows: Sequence[BglWindow], train_fraction: float = 0.6, validation_fraction: float = 0.2
 ) -> BglSplits:
@@ -95,3 +104,28 @@ def evaluate_bgl_rule(splits: BglSplits, config: RuleConfig) -> BglRuleBenchmark
     for row in [*validation_rows, *test_rows]:
         row["threshold"] = threshold
     return BglRuleBenchmarkResult(validation_rows, test_rows, threshold, _metrics(test_rows))
+
+
+def evaluate_bgl_rule_validation(splits: BglSplits, config: RuleConfig) -> BglRuleValidationResult:
+    """Fit and tune the Rule baseline without accessing the held-out test split."""
+
+    transformer = BglLogOnlyFeatureTransformer()
+    transformer.fit([window for window in splits.train if not window.ground_truth])
+    train = transformer.transform(splits.train)
+    validation = transformer.transform(splits.validation)
+    scoring_detector = LogOnlyRuleDetector(config).fit(
+        [sample.features for sample in train if not sample.ground_truth]
+    )
+    validation_rows = _rows(
+        validation, scoring_detector.detect([sample.features for sample in validation]), "validation"
+    )
+    threshold = _select_validation_threshold(validation_rows)
+    final_detector = LogOnlyRuleDetector(
+        RuleConfig(normal_percentile=config.normal_percentile, score_threshold=threshold)
+    ).fit([sample.features for sample in train if not sample.ground_truth])
+    validation_rows = _rows(
+        validation, final_detector.detect([sample.features for sample in validation]), "validation"
+    )
+    for row in validation_rows:
+        row["threshold"] = threshold
+    return BglRuleValidationResult(validation_rows, threshold, _metrics(validation_rows))

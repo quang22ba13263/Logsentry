@@ -5,7 +5,11 @@ from pathlib import Path
 
 from evaluation.adapters.bgl_adapter import load_bgl_events, make_bgl_event_windows
 from evaluation.detectors.log_only_rule import RuleConfig
-from evaluation.runners.bgl_rule_benchmark import chronological_bgl_split, evaluate_bgl_rule
+from evaluation.runners.bgl_rule_benchmark import (
+    chronological_bgl_split,
+    evaluate_bgl_rule,
+    evaluate_bgl_rule_validation,
+)
 
 
 class BglRuleBenchmarkTests(unittest.TestCase):
@@ -31,6 +35,15 @@ class BglRuleBenchmarkTests(unittest.TestCase):
         self.assertEqual({"tp", "fp", "tn", "fn", "precision", "recall", "f1"}, set(metrics))
         self.assertTrue(all("ground_truth" in row and "reason" in row for row in result.test_rows))
         self.assertTrue(all(row["threshold"] == result.selected_threshold for row in result.validation_rows))
+
+    def test_validation_only_rule_benchmark_emits_no_test_rows(self) -> None:
+        result = evaluate_bgl_rule_validation(chronological_bgl_split(self.windows), RuleConfig())
+        self.assertEqual(20, len(result.validation_rows))
+        self.assertTrue(all(row["split"] == "validation" for row in result.validation_rows))
+        self.assertEqual(
+            {"tp", "fp", "tn", "fn", "precision", "recall", "f1"},
+            set(result.validation_metrics),
+        )
 
 
 if __name__ == "__main__":
