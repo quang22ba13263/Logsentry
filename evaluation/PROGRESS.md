@@ -38,8 +38,10 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   threshold `0.8958333333333334` chọn từ validation, prediction/metric được
   export cùng Rule.
 - [x] Export `confusion_matrices.csv` cho Rule và IF trong artifact BGL.
-- [ ] DeepLog BGL, VAR data-quality gate/N/A statement, log-only fusion và báo
-  cáo BGL final.
+- [x] `LogOnlyDeepLog` LSTM sequence detector đã implement và smoke-test (fit
+  train-normal sequence + score EventId sequence); chưa tích hợp runner.
+- [ ] Tích hợp DeepLog BGL, calibration validation, VAR data-quality gate/N/A,
+  log-only fusion và báo cáo BGL final.
 
 ## C. HDFS v1
 
@@ -76,6 +78,9 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   trước commit runner. Dùng `bgl_v1_e6a08f3/` làm baseline integrity đã xác
   minh; cả hai vẫn chỉ là diagnostic do test đã được xem trong giai đoạn phát
   triển.
+- [!] TensorFlow chạy CPU trên native Windows (không GPU) và phát cảnh báo
+  Matplotlib font-cache không ghi được tại user profile. Smoke test pass; đặt
+  `MPLCONFIGDIR` writable trước khi sinh figure benchmark.
 - [!] Workspace có thay đổi ngoài benchmark không nằm trong commit benchmark:
   `File_structure.md`, nhóm `scripts/`, cùng một số file root. Ngoài ra tại
   thời điểm audit, `evaluation/reports/.gitkeep` bị xóa và
