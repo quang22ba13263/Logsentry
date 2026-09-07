@@ -64,6 +64,13 @@ Các vòng tuning kế tiếp thay đổi một nhóm tham số mỗi lần, đo
 ghi config/seed/artifact. Fusion chỉ được thử sau khi chọn candidate
 detector/weight hoàn toàn trên validation.
 
+### Rule percentile tuning v1
+
+Với frozen validation hiện tại, percentile normal 95, 97 và 99 đều cho cùng
+P=0,9973, R=0,3601, F1=0,5291 và threshold=0,2. Vì vậy percentile không phải
+đòn bẩy cải thiện Rule ở checkpoint này; không mở test để phân biệt các cấu
+hình bằng metric test.
+
 Khi tuning được chốt, cần đóng băng config/model hash và mới chạy test đúng một
 lần để tạo báo cáo cuối. Không được dùng kết quả trong file này như metric test
 hay tuyên bố độ chính xác cuối cùng.

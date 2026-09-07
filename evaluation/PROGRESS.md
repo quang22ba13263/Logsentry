@@ -120,6 +120,8 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   F1=0.86726, 25.000 F1=0.85808, 50.000 F1=0.86733. Theo metric đã công bố,
   50.000 tạm tốt nhất nhưng hơn 10.000 chỉ 0.00007; chưa score test. Bảng và
   artifact nằm trong `reports/hdfs_validation_summary.md`.
+- [x] Rule percentile tuning v1 (95/97/99) cho cùng F1=0.5291 trên validation;
+  không phải đòn bẩy cải thiện ở checkpoint hiện tại và không score test.
 
 ## D. Vấn đề / quyết định cần theo dõi
 
