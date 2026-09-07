@@ -47,7 +47,8 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
 - [x] Validation policy review đã hoàn tất; xem `reports/bgl_validation_policy.md`.
 - [x] Log-only fusion BGL v1: **N/A** vì chỉ IF có score discriminative;
   không thay fusion bằng score của một detector.
-- [ ] Báo cáo BGL final (nêu rõ Rule/DeepLog/fusion N/A và IF baseline).
+- [x] Báo cáo BGL v1 đã đóng gói tại `reports/bgl_v1_summary.md`, phân biệt
+  diagnostic artifact với final run độc lập cần thực hiện sau development.
 
 ## C. HDFS v1
 
@@ -110,7 +111,7 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
 
 ## Bước kế tiếp bắt buộc
 
-1. Cài `PyYAML` vào interpreter dùng chạy benchmark.
-2. Viết và test HDFS adapter trước khi chạy smoke benchmark.
-3. Hoàn thiện BGL runner/artifact và calibration IF; chỉ sau đó mới chạy BGL
-   test chính thức, DeepLog và fusion.
+1. Viết và test HDFS adapter trước khi chạy smoke benchmark.
+2. Chạy HDFS smoke IF + DeepLog, rồi HDFS final benchmark.
+3. Chỉ sau khi toàn bộ benchmark hoàn tất mới mở một pha tuning riêng, được
+   ghi version/config và không dùng test set để chọn thông số.
