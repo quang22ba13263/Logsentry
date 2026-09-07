@@ -58,7 +58,10 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
 - [x] `hdfs_adapter.py` parse EventId sequence, join ba input theo `BlockId`,
   và chỉ expose `E1..E29` làm feature; label/type/ID là metadata.
 - [x] Unit tests HDFS cho sequence parser, join và leakage audit pass.
-- [ ] Full-scale join/count distribution và mismatch gate trên input HDFS thật.
+- [x] Full-scale HDFS join gate pass: 575.061 samples, 558.223 normal, 16.838
+  anomaly, 29 occurrence features; không có BlockId mismatch.
+- [x] Chronological smoke support gate pass: 20.000 train-normal, validation
+  5.000 có 257 anomaly, test 10.000 có 507 anomaly; không cần fallback split.
 - [ ] HDFS smoke split, IF + DeepLog; Rule chỉ thêm khi feature policy đã rõ.
 - [ ] HDFS final split/benchmark, log-only fusion và evidence artifact.
 
