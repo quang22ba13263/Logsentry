@@ -12,7 +12,7 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
 - [x] SHA-256 BGL structured CSV, HDFS traces và HDFS occurrence matrix đã ghi
   tại `README.md` và config.
 - [x] Protocol, BGL/HDFS YAML config và random seed `42` đã tạo.
-- [x] Python/dependency runtime đã được kiểm tra; 16 unit test evaluation pass.
+- [x] Python/dependency runtime đã được kiểm tra; 19 unit test evaluation pass.
 - [x] Runner BGL đã tạo `manifest.json`, checksum input/config, `split.csv`,
   `predictions.csv`, `metrics.json` và `run_config.yaml` tại output bị ignore.
 
@@ -90,9 +90,12 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   `bgl_dev_guard_20260907/` có 0 test prediction/0 nhãn test; HDFS artifact
   `hdfs_dev_guard_20260907/` chỉ ghi validation metric (DeepLog F1=0.7488 với
   2.000 normal trace, 1 epoch). Đây là checkpoint tuning, không phải final.
-- [ ] Định nghĩa và kiểm thử HDFS Rule log-only (trace length/entropy/unseen
-  event) không dùng `Label`, `Type`, `BlockId`; chỉ thêm vào fusion nếu score
-  đủ phân biệt trên validation.
+- [x] HDFS Rule log-only đã có transformer fit EventId vocabulary từ
+  train-normal và feature `trace_length`, entropy, top-event ratio,
+  unseen-event ratio; unit test từ chối `Label`/`Type`/`BlockId`/ground truth.
+- [x] HDFS Rule validation-only checkpoint `hdfs_rule_dev_20260907/`: P=0.9957,
+  R=0.9027, F1=0.9469, threshold=0.2. Rule đủ điều kiện là **candidate** fusion;
+  chưa thêm vào fusion hoặc chấm test trước pha tuning versioned.
 - [ ] Hoàn thiện HDFS final-scale split/benchmark artifact (chưa chạy test).
 
 ## D. Vấn đề / quyết định cần theo dõi
@@ -144,9 +147,9 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
 ## Bước kế tiếp bắt buộc
 
 1. Hoàn thiện HDFS Rule feature policy và test leakage trước khi thêm fusion.
-2. Hoàn thiện runner/artifact final-scale ở chế độ development (train +
+1. Hoàn thiện runner/artifact final-scale ở chế độ development (train +
    validation), chưa gọi `--final-test`.
-3. Mở pha tuning versioned: thay đổi một nhóm thông số mỗi lần, đo trên
+2. Mở pha tuning versioned: thay đổi một nhóm thông số mỗi lần, đo trên
    validation, lưu config/seed/metric; tuyệt đối không score test.
-4. Khi chọn được config tốt nhất trên validation, đóng băng config/model hash
+3. Khi chọn được config tốt nhất trên validation, đóng băng config/model hash
    và mới chạy `--final-test` đúng một lần để tạo báo cáo cuối.

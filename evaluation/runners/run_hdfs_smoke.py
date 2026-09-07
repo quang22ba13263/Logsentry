@@ -15,7 +15,10 @@ if str(ROOT) not in sys.path:
 
 from evaluation.adapters.hdfs_adapter import load_hdfs_traces
 from evaluation.detectors.log_only_deeplog import DeepLogConfig, LogOnlyDeepLog
+from evaluation.detectors.hdfs_log_only_rule import HdfsLogOnlyRuleDetector
 from evaluation.detectors.log_only_isolation_forest import IsolationForestConfig, LogOnlyIsolationForest
+from evaluation.detectors.log_only_rule import RuleConfig
+from evaluation.features.hdfs_log_only_features import HdfsLogOnlyRuleFeatureTransformer
 from evaluation.runners.bgl_rule_benchmark import _metrics, _select_validation_threshold
 
 
@@ -66,6 +69,20 @@ def main() -> None:
             writer.writerows({"sample_id": item.sample_id, "split": name, "ground_truth": item.ground_truth if args.final_test or name != "test" else ""} for item in rows)
 
     detector = LogOnlyIsolationForest(tuple(train[0].features), IsolationForestConfig(n_estimators=100, random_seed=42)).fit([item.features for item in train])
+    rule_transformer = HdfsLogOnlyRuleFeatureTransformer().fit(train)
+    train_rule_features = rule_transformer.transform(train)
+    validation_rule_features = rule_transformer.transform(validation)
+    rule_detector = HdfsLogOnlyRuleDetector(RuleConfig()).fit(
+        [item.features for item in train_rule_features]
+    )
+    rule_predictions = rule_detector.detect([item.features for item in validation_rule_features])
+    validation_rule_rows = _rows(
+        validation,
+        [prediction.normalized_score for prediction in rule_predictions],
+    )
+    rule_threshold = _select_validation_threshold(validation_rule_rows)
+    for row in validation_rule_rows:
+        row["prediction"] = int(float(row["normalized_score"]) >= rule_threshold)
     validation_if_rows = _rows(validation, [score.normalized_score for score in detector.score([item.features for item in validation])])
     if_threshold = _select_validation_threshold(validation_if_rows)
     for row in validation_if_rows:
@@ -82,12 +99,15 @@ def main() -> None:
         row["prediction"] = int(float(row["normalized_score"]) >= fusion_threshold)
 
     phase = "final_test" if args.final_test else "development_validation_only"
-    metric_rows: dict[str, list[dict[str, object]]] = {"isolation_forest": validation_if_rows, "deeplog": validation_deep_rows, "log_only_fusion": fusion_validation_rows}
+    metric_rows: dict[str, list[dict[str, object]]] = {"log_only_rule": validation_rule_rows, "isolation_forest": validation_if_rows, "deeplog": validation_deep_rows, "log_only_fusion": fusion_validation_rows}
     if args.final_test:
+        test_rule_features = rule_transformer.transform(test)
+        test_rule_predictions = rule_detector.detect([item.features for item in test_rule_features])
+        test_rule_rows = _rows(test, [prediction.normalized_score for prediction in test_rule_predictions], rule_threshold)
         test_if_rows = _rows(test, [score.normalized_score for score in detector.score([item.features for item in test])], if_threshold)
         test_deep_rows = _rows(test, deeplog.score([item.sequence for item in test]), deep_threshold)
-        metric_rows = {"isolation_forest": test_if_rows, "deeplog": test_deep_rows, "log_only_fusion": _fuse(test_if_rows, test_deep_rows, fusion_threshold)}
-    metrics = {"evaluation_phase": phase, "metric_split": "test" if args.final_test else "validation", **{name: _metrics(rows) for name, rows in metric_rows.items()}, "if_validation_threshold": if_threshold, "deeplog_validation_threshold": deep_threshold, "fusion_validation_threshold": fusion_threshold, "fusion_weights": {"isolation_forest": 0.5, "deeplog": 0.5}, "deeplog_train_limit": len(deep_train), "deeplog_epochs": args.deeplog_epochs}
+        metric_rows = {"log_only_rule": test_rule_rows, "isolation_forest": test_if_rows, "deeplog": test_deep_rows, "log_only_fusion": _fuse(test_if_rows, test_deep_rows, fusion_threshold)}
+    metrics = {"evaluation_phase": phase, "metric_split": "test" if args.final_test else "validation", **{name: _metrics(rows) for name, rows in metric_rows.items()}, "rule_validation_threshold": rule_threshold, "if_validation_threshold": if_threshold, "deeplog_validation_threshold": deep_threshold, "fusion_validation_threshold": fusion_threshold, "fusion_weights": {"isolation_forest": 0.5, "deeplog": 0.5}, "fusion_available_detectors": ["isolation_forest", "deeplog"], "deeplog_train_limit": len(deep_train), "deeplog_epochs": args.deeplog_epochs}
     (output / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     print(json.dumps({"output": str(output), "phase": phase, "validation_anomaly": sum(item.ground_truth for item in validation), "metrics": metrics}, indent=2))
 

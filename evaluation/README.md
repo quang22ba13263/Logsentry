@@ -52,7 +52,7 @@ Kiểm tra ngày 2026-09-06 bằng interpreter đang hoạt động:
 | `tensorflow` | `2.21.0` | `>=2.12.0` |
 
 Các package trên đã được import runtime thành công. `Flask 3.1.3`,
-`SQLAlchemy 2.0.52` và `statsmodels 0.15.0` cũng import được. Bộ 16 unit test
+`SQLAlchemy 2.0.52` và `statsmodels 0.15.0` cũng import được. Bộ 19 unit test
 trong `evaluation/tests` pass với interpreter này.
 
 Trước khi chạy benchmark chính thức, lưu output của các lệnh sau vào

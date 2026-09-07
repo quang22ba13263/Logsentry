@@ -20,6 +20,8 @@ detectors:
   log_only_rule:
     score: fraction_triggered_rules
     train_normal_percentile: 99
+    required_features: [trace_length, event_entropy, top_event_ratio, unseen_event_ratio]
+    threshold_policy: maximize_validation_f1
   isolation_forest:
     n_estimators: 100
     max_samples: auto
@@ -30,6 +32,8 @@ detectors:
 fusion:
   name: log_only_fusion
   tuning_split: validation
+  candidate_detectors: [log_only_rule, isolation_forest, deeplog]
+  selection_policy: validation_only_after_detector_config_is_versioned
 output:
   run_id: hdfs_v1_smoke
   processed_dir: data/processed/evaluation/hdfs_v1
