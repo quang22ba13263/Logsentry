@@ -28,6 +28,10 @@ detectors:
     contamination: auto
   deeplog:
     sequence_length: 10
+    embedding_dim: 16
+    lstm_units: 32
+    epochs: 5
+    batch_size: 32
     score_aggregation: max
 fusion:
   name: log_only_fusion
