@@ -52,15 +52,22 @@ class LogOnlyDeepLog:
         self.model.fit(np.asarray(contexts), np.asarray(targets), epochs=self.config.epochs, batch_size=self.config.batch_size, verbose=0)
         return self
 
-    def score(self, sequences: Sequence[Sequence[str]]) -> list[float]:
+    def score(self, sequences: Sequence[Sequence[str]], batch_size: int = 4096) -> list[float]:
         if self.model is None or self.vocabulary is None:
             raise RuntimeError("LogOnlyDeepLog must be fitted before score()")
-        unk = 0; length = self.config.sequence_length; scores = []
-        for sequence in sequences:
+        unk = 0; length = self.config.sequence_length; scores = [0.0] * len(sequences)
+        contexts: list[list[int]] = []; targets: list[int] = []; owners: list[int] = []
+        def flush() -> None:
+            if not contexts: return
+            probabilities = self.model.predict(np.asarray(contexts), batch_size=batch_size, verbose=0)
+            for owner, target, probability in zip(owners, targets, probabilities, strict=True):
+                surprise = 1.0 if target == unk else 1.0 - float(probability[target])
+                scores[owner] = max(scores[owner], surprise)
+            contexts.clear(); targets.clear(); owners.clear()
+        for owner, sequence in enumerate(sequences):
             encoded = [self.vocabulary.get(token, unk) for token in sequence]
-            surprises = []
             for index in range(length, len(encoded)):
-                probabilities = self.model.predict(np.asarray([encoded[index - length:index]]), verbose=0)[0]
-                surprises.append(1.0 - float(probabilities[encoded[index]])) if encoded[index] else surprises.append(1.0)
-            scores.append(max(surprises) if surprises else 0.0)
+                contexts.append(encoded[index - length:index]); targets.append(encoded[index]); owners.append(owner)
+                if len(contexts) >= batch_size: flush()
+        flush()
         return scores

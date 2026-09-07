@@ -62,6 +62,18 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   anomaly, 29 occurrence features; không có BlockId mismatch.
 - [x] Chronological smoke support gate pass: 20.000 train-normal, validation
   5.000 có 257 anomaly, test 10.000 có 507 anomaly; không cần fallback split.
+- [x] Smoke split immutable đã tạo tại `hdfs_v1_smoke_20260907/split.csv`.
+- [x] HDFS smoke IF đã chạy tại `hdfs_v1_if_smoke_20260907/`: threshold validation
+  `0.93805`, test P=0.1852, R=0.5878, F1=0.2817.
+- [ ] HDFS DeepLog smoke đang bị block ở cấu hình 20.000 trace: split được tạo
+  nhưng process TensorFlow chưa hoàn tất metric trong thời gian kiểm tra; cần
+  memory/runtime profiling hoặc smoke train subset versioned trước khi kết luận.
+- [!] DeepLog subset 2.000 trace / 1 epoch cũng bị dừng: implementation hiện
+  gọi TensorFlow predict theo từng context, nên validation/test HDFS tạo quá
+  nhiều inference call. Cần batch inference trong `LogOnlyDeepLog.score()`
+  trước khi thử lại; không ghi metric từ job bị dừng.
+- [x] `LogOnlyDeepLog.score()` đã đổi sang batched inference (4.096 context/lô);
+  smoke unit pass. Cần rerun HDFS smoke để xác nhận runtime/metric.
 - [ ] HDFS smoke split, IF + DeepLog; Rule chỉ thêm khi feature policy đã rõ.
 - [ ] HDFS final split/benchmark, log-only fusion và evidence artifact.
 
