@@ -104,8 +104,13 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   `hdfs_v1_final_rule_checksum_20260907/` đã verify upstream split/config hash và
   chỉ xuất 57.506 validation predictions: P=0.9973, R=0.3601, F1=0.5291,
   threshold=0.2; test không được đọc từ split, không có prediction/nhãn test.
-- [ ] HDFS Isolation Forest final-scale development artifact (chỉ train +
-  validation; chưa chạy test).
+- [x] HDFS Isolation Forest final-scale development artifact
+  `hdfs_v1_final_if_dev_20260907/`: train 389.427 normal trace, chỉ score
+  57.506 validation trace; P=0.9885, R=0.4628, F1=0.6305,
+  threshold=0.7079118807889541. Không có prediction/nhãn test.
+- [ ] HDFS DeepLog final-scale development artifact (chỉ train + validation;
+  chưa chạy test); cần giới hạn/memory plan rõ ràng trước khi materialize
+  next-event contexts cho 389.427 normal trace.
 
 ## D. Vấn đề / quyết định cần theo dõi
 

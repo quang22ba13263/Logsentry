@@ -20,6 +20,10 @@ detectors:
   log_only_rule:
     normal_percentile: 99
     threshold_policy: maximize_validation_f1
+  isolation_forest:
+    n_estimators: 100
+    max_samples: auto
+    contamination: auto
 output:
   processed_dir: data/processed/evaluation/hdfs_v1_final
   models_dir: data/models/evaluation/hdfs_v1_final
