@@ -55,11 +55,10 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
 - [x] Đã kiểm tra input schema: `Event_traces.csv` có `BlockId`, `Label`,
   `Type`, `Features`; occurrence matrix có `E1..E29`; label file riêng map
   `Normal`/`Anomaly`.
-- [ ] **HDFS adapter chưa tồn tại.** Cần tạo `evaluation/adapters/hdfs_adapter.py`
-  để parse sequence, join chính xác theo `BlockId`, chỉ dùng `E1..E29` làm
-  feature và đưa `Label`/`Type`/`BlockId` ra metadata.
-- [ ] Unit tests HDFS: parser sequence, join mismatch fail-closed, count/sample
-  distribution, và leakage audit.
+- [x] `hdfs_adapter.py` parse EventId sequence, join ba input theo `BlockId`,
+  và chỉ expose `E1..E29` làm feature; label/type/ID là metadata.
+- [x] Unit tests HDFS cho sequence parser, join và leakage audit pass.
+- [ ] Full-scale join/count distribution và mismatch gate trên input HDFS thật.
 - [ ] HDFS smoke split, IF + DeepLog; Rule chỉ thêm khi feature policy đã rõ.
 - [ ] HDFS final split/benchmark, log-only fusion và evidence artifact.
 
