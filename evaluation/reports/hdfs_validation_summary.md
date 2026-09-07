@@ -16,26 +16,33 @@ trên validation để phục vụ tuning; **không phải** kết quả benchma
 - Threshold của từng detector được chọn từ validation; không dùng metric test
   để chọn feature, hyperparameter, threshold hay fusion weight.
 
-## Kết quả validation
+## Bảng kết quả checkpoint hiện tại
 
-| Detector | Train normal | Cấu hình checkpoint | Precision | Recall | F1 |
-| --- | ---: | --- | ---: | ---: | ---: |
-| Rule log-only | 389.427 | percentile 99, threshold 0,2 | 0,9973 | 0,3601 | 0,5291 |
-| Isolation Forest | 389.427 | 100 trees, RobustScaler, threshold 0,7079119 | 0,9885 | 0,4628 | 0,6305 |
-| DeepLog | 10.000 | LSTM streaming, sequence 10, 1 epoch, threshold 0,9998583 | 0,9975 | 0,7671 | 0,8673 |
+Tất cả metric dưới đây dùng cùng frozen validation split và là kết quả sau
+tuning hiện tại; **không cột nào là kết quả test**.
 
-Các metric trên cùng một validation split; `train normal` của DeepLog bị giới
-hạn có chủ ý ở 10.000 trace theo source order để kiểm soát RAM/runtime. Giới
-hạn này là một tham số development cần được tune trên validation, không phải
-quyết định dựa trên test.
+| Detector | Train normal | Cấu hình checkpoint | Precision | Recall | F1 | Trạng thái |
+| --- | ---: | --- | ---: | ---: | ---: | --- |
+| Rule log-only | 389.427 | percentile 99, threshold 0,2 | 0,9973 | 0,3601 | 0,5291 | Candidate đơn lẻ |
+| Isolation Forest | 389.427 | 200 trees, max_samples 512, threshold 0,7651370 | 0,9888 | 0,4731 | 0,6400 | Candidate đơn lẻ |
+| DeepLog | 50.000 | LSTM streaming, sequence 10, 1 epoch, threshold 0,9999430 | 0,9968 | 0,7676 | 0,8673 | Candidate đơn lẻ tốt nhất |
+| Log-only fusion | Rule 0,75 + DeepLog 0,25 | threshold 0,2499857; IF weight 0 | 0,9971 | 1,0000 | 0,9985 | Candidate fusion; cần xác nhận hold-out |
+| VAR | N/A | HDFS v1 là block trace có nhãn session, không có time-series window đều | N/A | N/A | N/A | Không chạy theo protocol |
+
+VAR được ghi N/A có chủ ý, không phải lỗi triển khai: benchmark HDFS đánh giá
+một block trace độc lập và không cung cấp chuỗi thời gian liên tục/đều để VAR
+tạo residual có ý nghĩa khoa học. Ép resample hoặc tạo time window sẽ thay đổi
+semantics ground truth và vi phạm protocol.
 
 ## Artifact và traceability
 
 | Detector | Artifact validation-only | Commit runner |
 | --- | --- | --- |
-| Rule | `hdfs_v1_final_rule_checksum_20260907/` | `1c1835a` |
-| Isolation Forest | `hdfs_v1_final_if_dev_20260907/` | `736f2bb` |
-| DeepLog | `hdfs_v1_final_deeplog_dev_20260907/` | `6028508` |
+| Rule | `hdfs_v1_final_rule_checksum_20260907/` | `8dfdaac` |
+| Isolation Forest | `hdfs_v1_final_if_tune_200_512_20260907/` | `d06e0d5` |
+| DeepLog | `hdfs_v1_final_deeplog_tune_50000_20260907/` | `06f9d30` |
+| Fusion | `hdfs_v1_final_fusion_tune_fast_20260907/` | `265f054` |
+| VAR | Không có artifact — N/A theo protocol | N/A |
 
 Mỗi artifact có `manifest.json` với `test_scored=false` và
 `test_labels_exported=false`; `predictions.csv` chỉ có `split=validation`.
