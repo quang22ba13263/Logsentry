@@ -42,10 +42,27 @@ Mỗi artifact có `manifest.json` với `test_scored=false` và
 
 ## Diễn giải và bước tiếp theo
 
-DeepLog là detector tốt nhất ở checkpoint hiện tại theo F1 validation. Đây chỉ
-là cơ sở để mở các vòng tuning versioned: thay đổi một nhóm tham số mỗi lần,
-đo lại validation và ghi config/seed/artifact. Fusion chỉ được thử sau khi
-chọn candidate detector/weight hoàn toàn trên validation.
+DeepLog là detector tốt nhất ở checkpoint hiện tại theo F1 validation.
+
+### DeepLog train-size tuning v1
+
+Giữ cố định split, seed, sequence length 10, LSTM 16/32, 1 epoch và validation;
+chỉ đổi `train_normal_limit`. Selection metric được công bố trước là validation
+F1.
+
+| Normal train | Precision | Recall | F1 | Artifact |
+| ---: | ---: | ---: | ---: | --- |
+| 10.000 | 0,9975 | 0,7671 | 0,86726 | `hdfs_v1_final_deeplog_dev_20260907/` |
+| 25.000 | 0,9727 | 0,7676 | 0,85808 | `hdfs_v1_final_deeplog_tune_25000_20260907/` |
+| 50.000 | 0,9968 | 0,7676 | 0,86733 | `hdfs_v1_final_deeplog_tune_50000_20260907/` |
+
+Theo F1, 50.000 là checkpoint tốt nhất nhưng chênh lệch với 10.000 là rất nhỏ
+(0,00007); đây là lý do để cân nhắc runtime trước khi khóa lựa chọn. Không vòng
+nào score test.
+
+Các vòng tuning kế tiếp thay đổi một nhóm tham số mỗi lần, đo lại validation và
+ghi config/seed/artifact. Fusion chỉ được thử sau khi chọn candidate
+detector/weight hoàn toàn trên validation.
 
 Khi tuning được chốt, cần đóng băng config/model hash và mới chạy test đúng một
 lần để tạo báo cáo cuối. Không được dùng kết quả trong file này như metric test

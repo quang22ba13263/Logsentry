@@ -116,6 +116,10 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
 - [x] Báo cáo validation-only HDFS đã tổng hợp tại
   `reports/hdfs_validation_summary.md`; nêu split seal, config, P/R/F1,
   artifact/commit và cấm diễn giải thành kết quả test cuối.
+- [x] DeepLog train-size tuning v1 hoàn tất trên frozen validation: 10.000
+  F1=0.86726, 25.000 F1=0.85808, 50.000 F1=0.86733. Theo metric đã công bố,
+  50.000 tạm tốt nhất nhưng hơn 10.000 chỉ 0.00007; chưa score test. Bảng và
+  artifact nằm trong `reports/hdfs_validation_summary.md`.
 
 ## D. Vấn đề / quyết định cần theo dõi
 
