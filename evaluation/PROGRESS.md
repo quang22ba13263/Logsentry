@@ -32,8 +32,10 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   metric và manifest thành công.
 - [ ] Khóa artifact bằng run ID mới cho mỗi lần chạy; runner hiện ghi đè
   `bgl_v1/`, nên `split.csv` chưa là immutable versioned artifact.
-- [ ] Tích hợp IF vào runner CLI và export confusion matrix.
-- [ ] Tune IF threshold chỉ trên validation, sau đó chạy test đúng một lần.
+- [x] IF đã tích hợp vào `run_bgl.py`: `RobustScaler`/model fit train-normal,
+  threshold `0.8958333333333334` chọn từ validation, prediction/metric được
+  export cùng Rule.
+- [ ] Export confusion matrix CSV/figure cho Rule và IF.
 - [ ] DeepLog BGL, VAR data-quality gate/N/A statement, log-only fusion và báo
   cáo BGL final.
 
@@ -52,9 +54,7 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
 
 ## D. Vấn đề / quyết định cần theo dõi
 
-- [!] `PyYAML>=6.0` đã thêm vào `requirements.txt` để runner đọc YAML, nhưng
-  chưa cài trong interpreter đã kiểm tra. Chưa chạy CLI runner cho tới khi cài
-  dependency này.
+- [x] `PyYAML 6.0.3` đã cài và runner đọc YAML thành công.
 - [!] Repository hiện không có `.venv`; Python đã xác minh là Python hệ thống
   3.13.15. Cần dùng đúng interpreter của venv mong muốn trước final run và ghi
   vào manifest.
@@ -63,6 +63,10 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   chọn threshold `0.0` trên validation, dẫn đến mọi test sample bị dự đoán là
   anomaly (TP=8, FP=12, TN=0, FN=0; F1=0.5714); cần error analysis/policy
   review, không được tune theo test.
+- [!] IF preliminary chạy qua runner: TP=6, FP=3, TN=9, FN=2; P=0.6667,
+  R=0.7500, F1=0.7059. Threshold được chọn đúng từ validation, nhưng test đã
+  chạy lặp khi kiểm tra runner và output `bgl_v1/` bị ghi đè; cần run ID bất
+  biến trước khi công bố kết quả chính thức.
 - [!] Workspace có thay đổi ngoài benchmark không nằm trong commit benchmark:
   `File_structure.md`, nhóm `scripts/`, cùng một số file root. Ngoài ra tại
   thời điểm audit, `evaluation/reports/.gitkeep` bị xóa và
