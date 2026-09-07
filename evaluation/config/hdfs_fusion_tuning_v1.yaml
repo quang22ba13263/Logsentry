@@ -1,0 +1,9 @@
+version: hdfs_fusion_tuning_v1
+input_artifacts:
+  rule: hdfs_v1_final_rule_checksum_20260907
+  isolation_forest: hdfs_v1_final_if_tune_200_512_20260907
+  deeplog: hdfs_v1_final_deeplog_tune_50000_20260907
+weight_grid: [0.0, 0.25, 0.5, 0.75, 1.0]
+minimum_active_detectors: 2
+selection_metric: validation_f1
+test_policy: never_score_test_during_tuning
