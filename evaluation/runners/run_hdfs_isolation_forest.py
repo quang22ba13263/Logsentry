@@ -38,6 +38,7 @@ def main() -> None:
     parser.add_argument("--split-artifact", type=Path, required=True)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--n-estimators", type=int)
+    parser.add_argument("--max-samples")
     args = parser.parse_args()
     if not re.fullmatch(r"[A-Za-z0-9_-]+", args.run_id):
         raise ValueError("run-id may contain only letters, digits, underscores and hyphens")
@@ -63,8 +64,9 @@ def main() -> None:
     train_normal = [trace for trace in train if not trace.ground_truth]
     detector_config = config["detectors"]["isolation_forest"]
     n_estimators = args.n_estimators or int(detector_config["n_estimators"])
+    max_samples = int(args.max_samples) if args.max_samples and args.max_samples.isdigit() else args.max_samples or detector_config["max_samples"]
     feature_names = tuple(train_normal[0].features)
-    detector = LogOnlyIsolationForest(feature_names, IsolationForestConfig(n_estimators=n_estimators, max_samples=detector_config["max_samples"], contamination=detector_config["contamination"], random_seed=int(config["random_seed"]))).fit([trace.features for trace in train_normal])
+    detector = LogOnlyIsolationForest(feature_names, IsolationForestConfig(n_estimators=n_estimators, max_samples=max_samples, contamination=detector_config["contamination"], random_seed=int(config["random_seed"]))).fit([trace.features for trace in train_normal])
     scores = detector.score([trace.features for trace in validation])
     rows = [{"sample_id": trace.sample_id, "dataset": "HDFS_v1", "split": "validation", "ground_truth": trace.ground_truth, "detector": "hdfs_log_only_isolation_forest", "raw_score": score.raw_score, "normalized_score": score.normalized_score, "threshold": None, "prediction": 0, "reason": "isolation_forest_occurrence_features", "model_version": "hdfs-log-only-isolation-forest-v1", "config_version": config["version"]} for trace, score in zip(validation, scores, strict=True)]
     threshold = _select_validation_threshold(rows)
@@ -77,7 +79,7 @@ def main() -> None:
     output.mkdir(parents=True)
     with (output / "predictions.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0])); writer.writeheader(); writer.writerows(rows)
-    metrics = {"evaluation_phase": "development_validation_only", "metric_split": "validation", "hdfs_log_only_isolation_forest": _metrics(rows), "selected_validation_threshold": threshold, "n_estimators": n_estimators, "max_samples": detector_config["max_samples"], "train_normal_samples": len(train_normal), "validation_samples": len(validation)}
+    metrics = {"evaluation_phase": "development_validation_only", "metric_split": "validation", "hdfs_log_only_isolation_forest": _metrics(rows), "selected_validation_threshold": threshold, "n_estimators": n_estimators, "max_samples": max_samples, "train_normal_samples": len(train_normal), "validation_samples": len(validation)}
     (output / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     (output / "run_config.yaml").write_text(config_path.read_text(encoding="utf-8"), encoding="utf-8")
     manifest = {"run_id": args.run_id, "evaluation_phase": "development_validation_only", "upstream_split_sha256": upstream_manifest["split_sha256"], "config_sha256": sha256(config_path), "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), "timestamp_utc": datetime.now(timezone.utc).isoformat(), "test_scored": False, "test_labels_exported": False}
