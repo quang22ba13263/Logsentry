@@ -1,0 +1,21 @@
+version: hdfs_v1_final
+dataset:
+  name: HDFS_v1
+  event_traces_path: Dataset/HDFS_v1/preprocessed/Event_traces.csv
+  event_traces_sha256: 68cd80eac007b28f5ca10d8acceb104d61067e74e1c4eef2c6c6015b2d769d3c
+  occurrence_matrix_path: Dataset/HDFS_v1/preprocessed/Event_occurrence_matrix.csv
+  occurrence_matrix_sha256: 59ab8b8a6d12f18f41b35e9eb0113655825b9bf9d9787c1a6f72fface7cc01a7
+  anomaly_label_path: Dataset/HDFS_v1/preprocessed/anomaly_label.csv
+  anomaly_label_sha256: 1c711ed6c8848fc3243fb4d092f172f31d128c8a6ec7f26ebba72ab931885ed8
+sample:
+  kind: block_trace
+split:
+  strategy: source_record_order
+  train_fraction: 0.70
+  validation_fraction: 0.10
+  test_fraction: 0.20
+  export_test_labels_in_development: false
+random_seed: 42
+output:
+  processed_dir: data/processed/evaluation/hdfs_v1_final
+  models_dir: data/models/evaluation/hdfs_v1_final

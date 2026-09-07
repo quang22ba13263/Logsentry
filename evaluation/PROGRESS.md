@@ -96,9 +96,18 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
 - [x] HDFS Rule validation-only checkpoint `hdfs_rule_dev_20260907/`: P=0.9957,
   R=0.9027, F1=0.9469, threshold=0.2. Rule đủ điều kiện là **candidate** fusion;
   chưa thêm vào fusion hoặc chấm test trước pha tuning versioned.
-- [ ] Hoàn thiện HDFS final-scale split/benchmark artifact (chưa chạy test).
+- [x] HDFS final-scale 70/10/20 source-order split đã được materialize tại
+  `hdfs_v1_final_split_20260907/`: train 402.542 (13.115 anomaly), validation
+  57.506 (2.044 anomaly), test 115.013. Artifact có config/input/split hash,
+  nhưng không export nhãn hoặc score test.
+- [ ] Hoàn thiện HDFS final-scale detector artifact ở development mode (chỉ
+  train + validation; chưa chạy test).
 
 ## D. Vấn đề / quyết định cần theo dõi
+
+- [x] Checksum gate HDFS phát hiện hash occurrence matrix cũ sai một ký tự
+  (`59ab8a...`); đã đối chiếu lại file nguồn và sửa thành `59ab8b...` trong
+  README/config trước khi tạo bất kỳ final-scale artifact nào.
 
 - [x] `PyYAML 6.0.3` đã cài và runner đọc YAML thành công.
 - [!] Repository hiện không có `.venv`; Python đã xác minh là Python hệ thống

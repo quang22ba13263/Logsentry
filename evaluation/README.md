@@ -12,7 +12,7 @@ có ground truth. Nó không sửa worker realtime hoặc bất cứ tệp nào 
 | --- | --- | --- |
 | BGL 2k | `Dataset/BGL/BGL_2k.log_structured.csv` | `3fe74103c0b02a28514534e2a47257a3f770135ca61afd425bbd3b9d6a31fe26` |
 | HDFS v1 | `Dataset/HDFS_v1/preprocessed/Event_traces.csv` | `68cd80eac007b28f5ca10d8acceb104d61067e74e1c4eef2c6c6015b2d769d3c` |
-| HDFS v1 | `Dataset/HDFS_v1/preprocessed/Event_occurrence_matrix.csv` | `59ab8a8a6d12f18f41b35e9eb0113655825b9bf9d9787c1a6f72fface7cc01a7` |
+| HDFS v1 | `Dataset/HDFS_v1/preprocessed/Event_occurrence_matrix.csv` | `59ab8b8a6d12f18f41b35e9eb0113655825b9bf9d9787c1a6f72fface7cc01a7` |
 
 Tải BGL và HDFS v1 từ nguồn Loghub/public dataset tương ứng, rồi đặt đúng cấu
 trúc trên. Xác nhận checksum trước khi chạy; dataset là input chỉ đọc.
@@ -52,7 +52,7 @@ Kiểm tra ngày 2026-09-06 bằng interpreter đang hoạt động:
 | `tensorflow` | `2.21.0` | `>=2.12.0` |
 
 Các package trên đã được import runtime thành công. `Flask 3.1.3`,
-`SQLAlchemy 2.0.52` và `statsmodels 0.15.0` cũng import được. Bộ 19 unit test
+`SQLAlchemy 2.0.52` và `statsmodels 0.15.0` cũng import được. Bộ 21 unit test
 trong `evaluation/tests` pass với interpreter này.
 
 Trước khi chạy benchmark chính thức, lưu output của các lệnh sau vào
