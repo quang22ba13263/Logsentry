@@ -124,6 +124,8 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   không phải đòn bẩy cải thiện ở checkpoint hiện tại và không score test.
 - [x] IF tuning v1: 100/auto F1=0.63046, 200/auto F1=0.63682, 200/512
   F1=0.63997; 200/512 là candidate IF hiện tại, chỉ theo validation.
+- [x] Fusion tuning v1: Rule=0.75, DeepLog=0.25, IF=0 đạt P=0.9971,
+  R=1.0000, F1=0.9985 trên validation; test vẫn niêm phong.
 
 ## D. Vấn đề / quyết định cần theo dõi
 

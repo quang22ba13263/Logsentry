@@ -78,6 +78,13 @@ validation. Baseline 100 cây/`auto` đạt F1=0,63046; tăng 200 cây/`auto` đ
 F1=0,63682; 200 cây/512 mẫu đạt F1=0,63997 (P=0,98875, R=0,47309). Checkpoint
 200/512 là candidate IF hiện tại; không vòng nào score test.
 
+### Fusion tuning v1
+
+Grid weight `[0; 0,25; 0,5; 0,75; 1]` yêu cầu tối thiểu hai detector active.
+Rule 0,75 + DeepLog 0,25 (IF 0) đạt P=0,9971, R=1,0000, F1=0,9985,
+threshold=0,2499857. Đây là selection hoàn toàn theo validation; cần xác nhận
+sau khi config khóa, không dùng như metric test.
+
 Khi tuning được chốt, cần đóng băng config/model hash và mới chạy test đúng một
 lần để tạo báo cáo cuối. Không được dùng kết quả trong file này như metric test
 hay tuyên bố độ chính xác cuối cùng.
