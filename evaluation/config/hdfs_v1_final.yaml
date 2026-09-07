@@ -16,6 +16,10 @@ split:
   test_fraction: 0.20
   export_test_labels_in_development: false
 random_seed: 42
+detectors:
+  log_only_rule:
+    normal_percentile: 99
+    threshold_policy: maximize_validation_f1
 output:
   processed_dir: data/processed/evaluation/hdfs_v1_final
   models_dir: data/models/evaluation/hdfs_v1_final

@@ -12,7 +12,7 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
 - [x] SHA-256 BGL structured CSV, HDFS traces và HDFS occurrence matrix đã ghi
   tại `README.md` và config.
 - [x] Protocol, BGL/HDFS YAML config và random seed `42` đã tạo.
-- [x] Python/dependency runtime đã được kiểm tra; 19 unit test evaluation pass.
+- [x] Python/dependency runtime đã được kiểm tra; 23 unit test evaluation pass.
 - [x] Runner BGL đã tạo `manifest.json`, checksum input/config, `split.csv`,
   `predictions.csv`, `metrics.json` và `run_config.yaml` tại output bị ignore.
 
@@ -100,8 +100,12 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   `hdfs_v1_final_split_20260907/`: train 402.542 (13.115 anomaly), validation
   57.506 (2.044 anomaly), test 115.013. Artifact có config/input/split hash,
   nhưng không export nhãn hoặc score test.
-- [ ] Hoàn thiện HDFS final-scale detector artifact ở development mode (chỉ
-  train + validation; chưa chạy test).
+- [x] HDFS Rule final-scale development artifact
+  `hdfs_v1_final_rule_checksum_20260907/` đã verify upstream split/config hash và
+  chỉ xuất 57.506 validation predictions: P=0.9973, R=0.3601, F1=0.5291,
+  threshold=0.2; test không được đọc từ split, không có prediction/nhãn test.
+- [ ] HDFS Isolation Forest final-scale development artifact (chỉ train +
+  validation; chưa chạy test).
 
 ## D. Vấn đề / quyết định cần theo dõi
 
@@ -155,9 +159,8 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
 
 ## Bước kế tiếp bắt buộc
 
-1. Hoàn thiện HDFS Rule feature policy và test leakage trước khi thêm fusion.
-1. Hoàn thiện runner/artifact final-scale ở chế độ development (train +
-   validation), chưa gọi `--final-test`.
+1. Hoàn thiện HDFS Isolation Forest và DeepLog final-scale artifact ở chế độ
+   development (train + validation), chưa gọi `--final-test`.
 2. Mở pha tuning versioned: thay đổi một nhóm thông số mỗi lần, đo trên
    validation, lưu config/seed/metric; tuyệt đối không score test.
 3. Khi chọn được config tốt nhất trên validation, đóng băng config/model hash
