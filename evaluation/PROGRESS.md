@@ -44,7 +44,10 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
 - [x] VAR BGL data-quality gate: **N/A**; xem `reports/bgl_var_gate.md`.
 - [x] `error_analysis.csv` đã export cho mỗi detector (top 10 FP/FN theo score)
   trong artifact `bgl_v1_error_analysis_841b049/`.
-- [ ] Log-only fusion và báo cáo BGL final.
+- [x] Validation policy review đã hoàn tất; xem `reports/bgl_validation_policy.md`.
+- [x] Log-only fusion BGL v1: **N/A** vì chỉ IF có score discriminative;
+  không thay fusion bằng score của một detector.
+- [ ] Báo cáo BGL final (nêu rõ Rule/DeepLog/fusion N/A và IF baseline).
 
 ## C. HDFS v1
 
@@ -96,6 +99,9 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   FP có score `1.0` do EventId UNK; IF có 3 FP (windows 85/91/97) và 2 FN
   (windows 86/87). Các finding này phải được dùng để sửa policy qua validation,
   không được chọn lại bằng test.
+- [!] Validation policy: Rule score constant `0.2`; DeepLog 19/20 score gần
+  hoặc bằng `1.0` do UNK saturation. Hai detector bị loại khỏi BGL v1 fusion;
+  không chỉnh hyperparameter theo test để cố cải thiện F1.
 - [!] Workspace có thay đổi ngoài benchmark không nằm trong commit benchmark:
   `File_structure.md`, nhóm `scripts/`, cùng một số file root. Ngoài ra tại
   thời điểm audit, `evaluation/reports/.gitkeep` bị xóa và
