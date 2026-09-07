@@ -32,6 +32,8 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   metric và manifest thành công.
 - [x] Runner bắt buộc `--run-id`, tạo artifact `bgl_v1_20260907/` và từ chối
   lần chạy thứ hai cùng ID; `split.csv` không còn bị overwrite.
+- [x] Integrity đã xác minh lại với `bgl_v1_e6a08f3/`: hash dataset/config/split
+  và `git_commit` trong manifest khớp đúng commit khóa runner `e6a08f3`.
 - [x] IF đã tích hợp vào `run_bgl.py`: `RobustScaler`/model fit train-normal,
   threshold `0.8958333333333334` chọn từ validation, prediction/metric được
   export cùng Rule.
@@ -70,6 +72,10 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
 - [!] Artifact `bgl_v1_20260907/` hiện là immutable diagnostic run có đầy đủ
   split/prediction/metric/confusion matrix/manifest. Không gọi là final vì
   DeepLog, fusion, error analysis và policy Rule vẫn chưa hoàn tất.
+- [!] `bgl_v1_20260907/` giữ manifest của commit trước (`e9ce224`) vì được tạo
+  trước commit runner. Dùng `bgl_v1_e6a08f3/` làm baseline integrity đã xác
+  minh; cả hai vẫn chỉ là diagnostic do test đã được xem trong giai đoạn phát
+  triển.
 - [!] Workspace có thay đổi ngoài benchmark không nằm trong commit benchmark:
   `File_structure.md`, nhóm `scripts/`, cùng một số file root. Ngoài ra tại
   thời điểm audit, `evaluation/reports/.gitkeep` bị xóa và
