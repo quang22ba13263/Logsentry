@@ -41,8 +41,8 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
 - [x] DeepLog đã tích hợp `run_bgl.py`: LSTM train normal-window sequence,
   score next-event surprise và threshold chọn trên validation; artifact
   `bgl_v1_deeplog_20260907/` có prediction/metric/confusion matrix.
-- [ ] VAR data-quality gate/N/A, log-only fusion, error analysis và báo cáo BGL
-  final.
+- [x] VAR BGL data-quality gate: **N/A**; xem `reports/bgl_var_gate.md`.
+- [ ] Log-only fusion, error analysis và báo cáo BGL final.
 
 ## C. HDFS v1
 
@@ -86,6 +86,10 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   anomaly (TP=8, FP=12, TN=0, FN=0; F1=0.5714). Khả năng cao do EventId chưa
   thấy trong normal-train được score cực đại; cần error analysis và xem xét
   aggregation/UNK policy bằng validation, tuyệt đối không tune theo test.
+- [!] Manifest `bgl_v1_deeplog_20260907/` ghi commit `530b770` (DeepLog class)
+  vì run được tạo trước commit runner integration `426c0e0`; giữ nó làm
+  diagnostic và tạo run ID mới sau khi source được khóa trước bất kỳ kết quả
+  chính thức nào.
 - [!] Workspace có thay đổi ngoài benchmark không nằm trong commit benchmark:
   `File_structure.md`, nhóm `scripts/`, cùng một số file root. Ngoài ra tại
   thời điểm audit, `evaluation/reports/.gitkeep` bị xóa và
