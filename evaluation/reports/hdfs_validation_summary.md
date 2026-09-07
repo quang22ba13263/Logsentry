@@ -71,6 +71,13 @@ P=0,9973, R=0,3601, F1=0,5291 và threshold=0,2. Vì vậy percentile không ph�
 đòn bẩy cải thiện Rule ở checkpoint này; không mở test để phân biệt các cấu
 hình bằng metric test.
 
+### Isolation Forest tuning v1
+
+Giữ frozen split, normal-train 389.427 trace và threshold selection trên
+validation. Baseline 100 cây/`auto` đạt F1=0,63046; tăng 200 cây/`auto` đạt
+F1=0,63682; 200 cây/512 mẫu đạt F1=0,63997 (P=0,98875, R=0,47309). Checkpoint
+200/512 là candidate IF hiện tại; không vòng nào score test.
+
 Khi tuning được chốt, cần đóng băng config/model hash và mới chạy test đúng một
 lần để tạo báo cáo cuối. Không được dùng kết quả trong file này như metric test
 hay tuyên bố độ chính xác cuối cùng.

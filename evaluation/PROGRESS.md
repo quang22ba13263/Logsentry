@@ -122,6 +122,8 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   artifact nằm trong `reports/hdfs_validation_summary.md`.
 - [x] Rule percentile tuning v1 (95/97/99) cho cùng F1=0.5291 trên validation;
   không phải đòn bẩy cải thiện ở checkpoint hiện tại và không score test.
+- [x] IF tuning v1: 100/auto F1=0.63046, 200/auto F1=0.63682, 200/512
+  F1=0.63997; 200/512 là candidate IF hiện tại, chỉ theo validation.
 
 ## D. Vấn đề / quyết định cần theo dõi
 
