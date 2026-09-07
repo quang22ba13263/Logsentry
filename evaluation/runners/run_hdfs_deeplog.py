@@ -46,8 +46,8 @@ def main() -> None:
     output.mkdir(parents=True)
     with (output / "predictions.csv").open("w",newline="",encoding="utf-8") as handle:
         writer=csv.DictWriter(handle,fieldnames=list(rows[0])); writer.writeheader(); writer.writerows(rows)
-    metrics={"evaluation_phase":"development_validation_only","metric_split":"validation","hdfs_log_only_deeplog":_metrics(rows),"selected_validation_threshold":threshold,"train_normal_samples":len(train_normal),"validation_samples":len(validation)}
+    metrics={"evaluation_phase":"development_validation_only","metric_split":"validation","hdfs_log_only_deeplog":_metrics(rows),"selected_validation_threshold":threshold,"train_normal_samples":len(train_normal),"deeplog_train_normal_limit":limit,"validation_samples":len(validation)}
     (output / "metrics.json").write_text(json.dumps(metrics,indent=2),encoding="utf-8"); (output / "run_config.yaml").write_text(config_path.read_text(encoding="utf-8"),encoding="utf-8")
-    manifest={"run_id":args.run_id,"evaluation_phase":"development_validation_only","upstream_split_sha256":upstream["split_sha256"],"config_sha256":sha256(config_path),"git_commit":subprocess.check_output(["git","rev-parse","HEAD"],cwd=ROOT,text=True).strip(),"timestamp_utc":datetime.now(timezone.utc).isoformat(),"test_scored":False,"test_labels_exported":False}
+    manifest={"run_id":args.run_id,"evaluation_phase":"development_validation_only","upstream_split_sha256":upstream["split_sha256"],"config_sha256":sha256(config_path),"git_commit":subprocess.check_output(["git","rev-parse","HEAD"],cwd=ROOT,text=True).strip(),"timestamp_utc":datetime.now(timezone.utc).isoformat(),"deeplog_effective_parameters":{**settings,"train_normal_limit":limit},"test_scored":False,"test_labels_exported":False}
     (output / "manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8"); print(json.dumps({"output":str(output),"metrics":metrics},indent=2))
 if __name__ == "__main__": main()
