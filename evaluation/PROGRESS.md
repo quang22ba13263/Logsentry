@@ -12,7 +12,7 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
 - [x] SHA-256 BGL structured CSV, HDFS traces và HDFS occurrence matrix đã ghi
   tại `README.md` và config.
 - [x] Protocol, BGL/HDFS YAML config và random seed `42` đã tạo.
-- [x] Python/dependency runtime đã được kiểm tra; 23 unit test evaluation pass.
+- [x] Python/dependency runtime đã được kiểm tra; 24 unit test evaluation pass.
 - [x] Runner BGL đã tạo `manifest.json`, checksum input/config, `split.csv`,
   `predictions.csv`, `metrics.json` và `run_config.yaml` tại output bị ignore.
 
@@ -108,9 +108,11 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   `hdfs_v1_final_if_dev_20260907/`: train 389.427 normal trace, chỉ score
   57.506 validation trace; P=0.9885, R=0.4628, F1=0.6305,
   threshold=0.7079118807889541. Không có prediction/nhãn test.
-- [ ] HDFS DeepLog final-scale development artifact (chỉ train + validation;
-  chưa chạy test); cần giới hạn/memory plan rõ ràng trước khi materialize
-  next-event contexts cho 389.427 normal trace.
+- [x] DeepLog được đổi sang streaming train context và direct batched inference;
+  unit test xác nhận fit/UNK score. HDFS final-scale artifact
+  `hdfs_v1_final_deeplog_dev_20260907/` train deterministic 10.000 normal
+  trace/1 epoch, chỉ score validation: P=0.9975, R=0.7671, F1=0.8673,
+  threshold=0.9998582827392966; không có prediction/nhãn test.
 
 ## D. Vấn đề / quyết định cần theo dõi
 

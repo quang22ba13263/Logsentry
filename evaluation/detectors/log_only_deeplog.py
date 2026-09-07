@@ -33,13 +33,9 @@ class LogOnlyDeepLog:
         if not tokens:
             raise ValueError("DeepLog requires normal training sequences")
         self.vocabulary = {token: index + 1 for index, token in enumerate(tokens)}
-        encoded = [[self.vocabulary[token] for token in sequence] for sequence in normal_sequences]
-        contexts, targets = [], []
         length = self.config.sequence_length
-        for sequence in encoded:
-            for index in range(length, len(sequence)):
-                contexts.append(sequence[index - length:index]); targets.append(sequence[index])
-        if not contexts:
+        context_count = sum(max(0, len(sequence) - length) for sequence in normal_sequences)
+        if not context_count:
             raise ValueError("Normal sequences are shorter than sequence_length")
         tf.keras.utils.set_random_seed(self.config.random_seed)
         self.model = tf.keras.Sequential([
@@ -49,7 +45,21 @@ class LogOnlyDeepLog:
             tf.keras.layers.Dense(len(self.vocabulary) + 1, activation="softmax"),
         ])
         self.model.compile(optimizer="adam", loss="sparse_categorical_crossentropy")
-        self.model.fit(np.asarray(contexts), np.asarray(targets), epochs=self.config.epochs, batch_size=self.config.batch_size, verbose=0)
+        def examples():
+            for sequence in normal_sequences:
+                encoded = [self.vocabulary[token] for token in sequence]
+                for index in range(length, len(encoded)):
+                    yield np.asarray(encoded[index - length:index], dtype=np.int32), np.int32(encoded[index])
+        dataset = tf.data.Dataset.from_generator(
+            examples,
+            output_signature=(tf.TensorSpec(shape=(length,), dtype=tf.int32), tf.TensorSpec(shape=(), dtype=tf.int32)),
+        ).batch(self.config.batch_size).repeat().prefetch(tf.data.AUTOTUNE)
+        self.model.fit(
+            dataset,
+            epochs=self.config.epochs,
+            steps_per_epoch=ceil(context_count / self.config.batch_size),
+            verbose=0,
+        )
         return self
 
     def score(self, sequences: Sequence[Sequence[str]], batch_size: int = 4096) -> list[float]:
@@ -59,7 +69,7 @@ class LogOnlyDeepLog:
         contexts: list[list[int]] = []; targets: list[int] = []; owners: list[int] = []
         def flush() -> None:
             if not contexts: return
-            probabilities = self.model.predict(np.asarray(contexts), batch_size=batch_size, verbose=0)
+            probabilities = self.model(np.asarray(contexts, dtype=np.int32), training=False).numpy()
             for owner, target, probability in zip(owners, targets, probabilities, strict=True):
                 surprise = 1.0 if target == unk else 1.0 - float(probability[target])
                 scores[owner] = max(scores[owner], surprise)
