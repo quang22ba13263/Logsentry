@@ -106,6 +106,16 @@ def main() -> None:
         writer.writeheader()
         for detector_name, detector_metrics in metrics.items():
             writer.writerow({"detector": detector_name, **{key: detector_metrics[key] for key in ("tp", "fp", "tn", "fn")}})
+    analysis_rows = []
+    for detector_name in metrics:
+        detector_rows = [row for row in rows if row["detector"] == detector_name and row["split"] == "test"]
+        false_positives = sorted((row for row in detector_rows if row["prediction"] == 1 and row["ground_truth"] == 0), key=lambda row: float(row["normalized_score"]), reverse=True)[:10]
+        false_negatives = sorted((row for row in detector_rows if row["prediction"] == 0 and row["ground_truth"] == 1), key=lambda row: float(row["normalized_score"]), reverse=True)[:10]
+        analysis_rows.extend({"error_type": "false_positive", **row} for row in false_positives)
+        analysis_rows.extend({"error_type": "false_negative", **row} for row in false_negatives)
+    with (output / "error_analysis.csv").open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=["error_type", *list(rows[0])])
+        writer.writeheader(); writer.writerows(analysis_rows)
     (output / "run_config.yaml").write_text(config_path.read_text(encoding="utf-8"), encoding="utf-8")
     manifest = {"run_id": args.run_id, "dataset_sha256": actual_hash, "config_sha256": sha256(config_path), "timestamp_utc": datetime.now(timezone.utc).isoformat(), "python": sys.version, "platform": platform.platform(), "selected_validation_threshold": result.selected_threshold, "selected_if_validation_threshold": if_threshold, "selected_deeplog_validation_threshold": deep_threshold, "split_sha256": sha256(output / "split.csv"), "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()}
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
