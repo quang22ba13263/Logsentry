@@ -76,12 +76,21 @@ def _rows(samples: Sequence[BglFeatureSample], predictions: Sequence[object], sp
 def _select_validation_threshold(rows: Sequence[dict[str, object]]) -> float:
     """Choose the F1-maximizing threshold exclusively from validation scores."""
 
-    candidates = sorted({0.0, 1.0, *(float(row["normalized_score"]) for row in rows)})
-    best_threshold, best_f1 = candidates[0], -1.0
+    candidates = sorted({0.0, 1.0, *(float(row["normalized_score"]) for row in rows)}, reverse=True)
+    ordered = sorted(((float(row["normalized_score"]), int(row["ground_truth"])) for row in rows), reverse=True)
+    positives = sum(label for _, label in ordered)
+    cursor = tp = fp = 0
+    best_threshold, best_f1 = min(candidates), -1.0
     for threshold in candidates:
-        trial_rows = [{**row, "prediction": int(float(row["normalized_score"]) >= threshold)} for row in rows]
-        f1 = float(_metrics(trial_rows)["f1"])
-        if f1 > best_f1:
+        while cursor < len(ordered) and ordered[cursor][0] >= threshold:
+            if ordered[cursor][1]: tp += 1
+            else: fp += 1
+            cursor += 1
+        fn = positives - tp
+        precision = tp / (tp + fp) if tp + fp else 0.0
+        recall = tp / (tp + fn) if tp + fn else 0.0
+        f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
+        if f1 > best_f1 or (f1 == best_f1 and threshold < best_threshold):
             best_threshold, best_f1 = threshold, f1
     return best_threshold
 
