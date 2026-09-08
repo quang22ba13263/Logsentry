@@ -52,6 +52,8 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
 - [x] BGL Rule percentile tuning 95/97/99 cho cùng validation F1=0.5714,
   threshold=0.0; Rule không đủ score discriminative cho fusion. Chi tiết ở
   `reports/bgl_tuning_plan.md`; không score test.
+- [x] BGL IF tuning 100→200 trees: F1 validation 0.7368→0.7619; 200 trees là
+  candidate hiện tại. Kết quả ghi trong `reports/bgl_tuning_plan.md`.
 
 ## C. HDFS v1
 

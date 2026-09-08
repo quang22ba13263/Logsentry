@@ -53,6 +53,16 @@ Mọi percentile chọn threshold validation 0,0 và dự báo cả 20 validatio
 window là anomaly. Vì vậy percentile không phải hướng cải thiện Rule BGL v1;
 Rule không đủ score discriminative để làm candidate fusion hiện tại.
 
+### Isolation Forest stability v1 — hoàn tất
+
+| Trees | Precision | Recall | F1 | Artifact |
+| ---: | ---: | ---: | ---: | --- |
+| 100 | 0,6368 | 0,8750 | 0,7368 | `bgl_dev_guard_20260907/` |
+| 200 | 0,6154 | 1,0000 | 0,7619 | `bgl_if_tune_200_20260908/` |
+
+Theo validation F1, 200 trees là candidate IF hiện tại. Chênh lệch chỉ có 20
+validation window, nên cần tránh mở grid lớn hơn ngoài kế hoạch đã khóa.
+
 ### 3. DeepLog — giảm UNK saturation
 
 - `sequence_length`: 5, 10.
