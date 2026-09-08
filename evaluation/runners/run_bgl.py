@@ -52,6 +52,7 @@ def main() -> None:
     )
     parser.add_argument("--rule-normal-percentile", type=float)
     parser.add_argument("--if-n-estimators", type=int)
+    parser.add_argument("--deeplog-sequence-length", type=int)
     args = parser.parse_args()
     config_path = args.config.resolve()
     config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
@@ -106,7 +107,8 @@ def main() -> None:
         row["prediction"] = int(float(row["normalized_score"]) >= if_threshold)
 
     deep_config = config["detectors"]["deeplog"]
-    deeplog = LogOnlyDeepLog(DeepLogConfig(sequence_length=deep_config["sequence_length"], embedding_dim=deep_config["embedding_dim"], lstm_units=deep_config["lstm_units"], epochs=deep_config["epochs"], batch_size=deep_config["batch_size"], random_seed=config["random_seed"])).fit([item.sequence for item in splits.train if not item.ground_truth])
+    deeplog_sequence_length = args.deeplog_sequence_length or int(deep_config["sequence_length"])
+    deeplog = LogOnlyDeepLog(DeepLogConfig(sequence_length=deeplog_sequence_length, embedding_dim=deep_config["embedding_dim"], lstm_units=deep_config["lstm_units"], epochs=deep_config["epochs"], batch_size=deep_config["batch_size"], random_seed=config["random_seed"])).fit([item.sequence for item in splits.train if not item.ground_truth])
     validation_deep_scores = deeplog.score([item.sequence for item in splits.validation])
     validation_deep_rows = [{"sample_id": item.sample_id, "split": "validation", "ground_truth": item.ground_truth, "detector": "log_only_deeplog", "raw_score": score, "normalized_score": score, "threshold": None, "prediction": 0, "reason": "lstm_next_event_surprisal"} for item, score in zip(splits.validation, validation_deep_scores, strict=True)]
     deep_threshold = _select_validation_threshold(validation_deep_rows)
@@ -133,7 +135,7 @@ def main() -> None:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
         writer.writeheader(); writer.writerows(rows)
     metric_split = "test" if args.final_test else "validation"
-    metrics = {"evaluation_phase": "final_test" if args.final_test else "development_validation_only", "metric_split": metric_split, "log_only_rule": rule_metrics, "log_only_isolation_forest": _metrics(test_if_rows if args.final_test else validation_if_rows), "log_only_deeplog": _metrics(test_deep_rows if args.final_test else validation_deep_rows)}
+    metrics = {"evaluation_phase": "final_test" if args.final_test else "development_validation_only", "metric_split": metric_split, "log_only_rule": rule_metrics, "log_only_isolation_forest": _metrics(test_if_rows if args.final_test else validation_if_rows), "log_only_deeplog": _metrics(test_deep_rows if args.final_test else validation_deep_rows), "deeplog_sequence_length": deeplog_sequence_length, "deeplog_validation_score_one_count": sum(float(row["normalized_score"]) == 1.0 for row in validation_deep_rows)}
     (output / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     with (output / "confusion_matrices.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=["detector", "tp", "fp", "tn", "fn"])
@@ -142,7 +144,7 @@ def main() -> None:
             detector_metrics = metrics[detector_name]
             writer.writerow({"detector": detector_name, **{key: detector_metrics[key] for key in ("tp", "fp", "tn", "fn")}})
     (output / "run_config.yaml").write_text(config_path.read_text(encoding="utf-8"), encoding="utf-8")
-    manifest = {"run_id": args.run_id, "evaluation_phase": metrics["evaluation_phase"], "dataset_sha256": actual_hash, "config_sha256": sha256(config_path), "timestamp_utc": datetime.now(timezone.utc).isoformat(), "python": sys.version, "platform": platform.platform(), "rule_normal_percentile": rule_normal_percentile, "if_n_estimators": if_n_estimators, "selected_validation_threshold": rule_threshold, "selected_if_validation_threshold": if_threshold, "selected_deeplog_validation_threshold": deep_threshold, "split_sha256": sha256(output / "split.csv"), "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()}
+    manifest = {"run_id": args.run_id, "evaluation_phase": metrics["evaluation_phase"], "dataset_sha256": actual_hash, "config_sha256": sha256(config_path), "timestamp_utc": datetime.now(timezone.utc).isoformat(), "python": sys.version, "platform": platform.platform(), "rule_normal_percentile": rule_normal_percentile, "if_n_estimators": if_n_estimators, "deeplog_sequence_length": deeplog_sequence_length, "selected_validation_threshold": rule_threshold, "selected_if_validation_threshold": if_threshold, "selected_deeplog_validation_threshold": deep_threshold, "split_sha256": sha256(output / "split.csv"), "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()}
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print(json.dumps({"output": str(output), "metrics": metrics, "thresholds": {"log_only_rule": rule_threshold, "log_only_isolation_forest": if_threshold, "log_only_deeplog": deep_threshold}}, indent=2))
 
