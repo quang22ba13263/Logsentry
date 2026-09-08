@@ -54,6 +54,8 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   `reports/bgl_tuning_plan.md`; không score test.
 - [x] BGL IF tuning 100→200 trees: F1 validation 0.7368→0.7619; 200 trees là
   candidate hiện tại. Kết quả ghi trong `reports/bgl_tuning_plan.md`.
+- [x] BGL DeepLog sequence tuning 5/10: F1=0.5714/0.5926, score=1.0 là
+  20/20 và 19/20; UNK saturation nên DeepLog chưa đủ điều kiện fusion BGL.
 
 ## C. HDFS v1
 

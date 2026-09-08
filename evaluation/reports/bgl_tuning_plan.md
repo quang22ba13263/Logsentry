@@ -63,6 +63,17 @@ Rule không đủ score discriminative để làm candidate fusion hiện tại.
 Theo validation F1, 200 trees là candidate IF hiện tại. Chênh lệch chỉ có 20
 validation window, nên cần tránh mở grid lớn hơn ngoài kế hoạch đã khóa.
 
+### DeepLog sequence-length v1 — hoàn tất
+
+| Sequence length | Precision | Recall | F1 | Score = 1,0 | Artifact |
+| ---: | ---: | ---: | ---: | ---: | --- |
+| 5 | 0,4000 | 1,0000 | 0,5714 | 20/20 | `bgl_deeplog_tune_seq5_20260908/` |
+| 10 | 0,4211 | 1,0000 | 0,5926 | 19/20 | `bgl_deeplog_tune_seq10_20260908/` |
+
+Sequence 10 tốt hơn nhưng UNK saturation vẫn gần hoàn toàn. Theo fusion gate,
+DeepLog BGL chưa có score đủ discriminative; không đưa Rule hoặc DeepLog vào
+fusion BGL chỉ để tăng số detector.
+
 ### 3. DeepLog — giảm UNK saturation
 
 - `sequence_length`: 5, 10.
