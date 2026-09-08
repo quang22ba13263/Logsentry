@@ -50,6 +50,7 @@ def main() -> None:
         action="store_true",
         help="Score the held-out test split. Use only after the configuration is frozen.",
     )
+    parser.add_argument("--rule-normal-percentile", type=float)
     args = parser.parse_args()
     config_path = args.config.resolve()
     config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
@@ -70,16 +71,17 @@ def main() -> None:
         config["split"]["train_fraction"], config["split"]["validation_fraction"],
     )
     rule_config = config["detectors"]["log_only_rule"]
+    rule_normal_percentile = args.rule_normal_percentile or float(rule_config["normal_percentile"])
     if args.final_test:
         rule_result = evaluate_bgl_rule(
-            splits, RuleConfig(normal_percentile=rule_config["normal_percentile"])
+            splits, RuleConfig(normal_percentile=rule_normal_percentile)
         )
         rule_validation_rows = rule_result.validation_rows
         rule_metrics = rule_result.test_metrics
         rule_threshold = rule_result.selected_threshold
     else:
         rule_result = evaluate_bgl_rule_validation(
-            splits, RuleConfig(normal_percentile=rule_config["normal_percentile"])
+            splits, RuleConfig(normal_percentile=rule_normal_percentile)
         )
         rule_validation_rows = rule_result.validation_rows
         rule_metrics = rule_result.validation_metrics
@@ -138,7 +140,7 @@ def main() -> None:
             detector_metrics = metrics[detector_name]
             writer.writerow({"detector": detector_name, **{key: detector_metrics[key] for key in ("tp", "fp", "tn", "fn")}})
     (output / "run_config.yaml").write_text(config_path.read_text(encoding="utf-8"), encoding="utf-8")
-    manifest = {"run_id": args.run_id, "evaluation_phase": metrics["evaluation_phase"], "dataset_sha256": actual_hash, "config_sha256": sha256(config_path), "timestamp_utc": datetime.now(timezone.utc).isoformat(), "python": sys.version, "platform": platform.platform(), "selected_validation_threshold": rule_threshold, "selected_if_validation_threshold": if_threshold, "selected_deeplog_validation_threshold": deep_threshold, "split_sha256": sha256(output / "split.csv"), "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()}
+    manifest = {"run_id": args.run_id, "evaluation_phase": metrics["evaluation_phase"], "dataset_sha256": actual_hash, "config_sha256": sha256(config_path), "timestamp_utc": datetime.now(timezone.utc).isoformat(), "python": sys.version, "platform": platform.platform(), "rule_normal_percentile": rule_normal_percentile, "selected_validation_threshold": rule_threshold, "selected_if_validation_threshold": if_threshold, "selected_deeplog_validation_threshold": deep_threshold, "split_sha256": sha256(output / "split.csv"), "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()}
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print(json.dumps({"output": str(output), "metrics": metrics, "thresholds": {"log_only_rule": rule_threshold, "log_only_isolation_forest": if_threshold, "log_only_deeplog": deep_threshold}}, indent=2))
 
