@@ -56,6 +56,9 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   candidate hiện tại. Kết quả ghi trong `reports/bgl_tuning_plan.md`.
 - [x] BGL DeepLog sequence tuning 5/10: F1=0.5714/0.5926, score=1.0 là
   20/20 và 19/20; UNK saturation nên DeepLog chưa đủ điều kiện fusion BGL.
+- [x] Báo cáo tổng hợp supervisor đã tạo tại
+  `reports/supervisor_evaluation_report.md`, gồm protocol, train/tuning,
+  kết quả, path, tái lập, test seal và known gap HDFS final runner.
 
 ## C. HDFS v1
 
