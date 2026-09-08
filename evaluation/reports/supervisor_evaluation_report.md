@@ -1,7 +1,7 @@
 # Báo cáo tổng hợp đánh giá LogSentry — BGL và HDFS
 
-**Cập nhật:** 2026-09-08  
-**Branch:** `codex/log-only-evaluation`  
+**Cập nhật:** 2026-09-08
+**Branch:** `codex/log-only-evaluation`
 **Trạng thái:** development/validation hoàn tất checkpoint chính; chưa chạy test cuối niêm phong.
 
 ## Tóm tắt
