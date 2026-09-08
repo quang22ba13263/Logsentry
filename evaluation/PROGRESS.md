@@ -181,9 +181,8 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
 
 ## Bước kế tiếp bắt buộc
 
-1. Hoàn thiện HDFS Isolation Forest và DeepLog final-scale artifact ở chế độ
-   development (train + validation), chưa gọi `--final-test`.
-2. Mở pha tuning versioned: thay đổi một nhóm thông số mỗi lần, đo trên
-   validation, lưu config/seed/metric; tuyệt đối không score test.
-3. Khi chọn được config tốt nhất trên validation, đóng băng config/model hash
-   và mới chạy `--final-test` đúng một lần để tạo báo cáo cuối.
+1. Thực hiện BGL validation-only tuning theo grid đã khóa tại
+   `reports/bgl_tuning_plan.md`; không gọi `--final-test`.
+2. Đóng băng candidate HDFS (và BGL sau tuning) cùng config/model hash.
+3. Chỉ khi người dùng chấp thuận mới chạy post-diagnostic confirmation trên
+   BGL test và final test HDFS đúng một lần.
