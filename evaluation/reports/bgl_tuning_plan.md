@@ -39,6 +39,20 @@ Các baseline là metric validation-only, không dùng để quyết định t�
   định; threshold vẫn chọn trên validation.
 - Chọn candidate bằng validation F1; nếu bằng nhau, ưu tiên ít cây hơn.
 
+## Kết quả tuning đã thực hiện
+
+### Rule percentile v1 — hoàn tất
+
+| Percentile | Precision | Recall | F1 | Artifact |
+| ---: | ---: | ---: | ---: | --- |
+| 95 | 0,4000 | 1,0000 | 0,5714 | `bgl_rule_tune_p95_20260908/` |
+| 97 | 0,4000 | 1,0000 | 0,5714 | `bgl_rule_tune_p97_20260908/` |
+| 99 | 0,4000 | 1,0000 | 0,5714 | `bgl_dev_guard_20260907/` |
+
+Mọi percentile chọn threshold validation 0,0 và dự báo cả 20 validation
+window là anomaly. Vì vậy percentile không phải hướng cải thiện Rule BGL v1;
+Rule không đủ score discriminative để làm candidate fusion hiện tại.
+
 ### 3. DeepLog — giảm UNK saturation
 
 - `sequence_length`: 5, 10.

@@ -49,6 +49,9 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   không thay fusion bằng score của một detector.
 - [x] Báo cáo BGL v1 đã đóng gói tại `reports/bgl_v1_summary.md`, phân biệt
   diagnostic artifact với final run độc lập cần thực hiện sau development.
+- [x] BGL Rule percentile tuning 95/97/99 cho cùng validation F1=0.5714,
+  threshold=0.0; Rule không đủ score discriminative cho fusion. Chi tiết ở
+  `reports/bgl_tuning_plan.md`; không score test.
 
 ## C. HDFS v1
 
