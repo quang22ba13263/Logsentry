@@ -50,6 +50,7 @@ Kiểm tra ngày 2026-09-06 bằng interpreter đang hoạt động:
 | `numpy` | `2.5.2` | `>=1.23.0` |
 | `scikit-learn` | `1.9.0` | `>=1.2.0` |
 | `tensorflow` | `2.21.0` | `>=2.12.0` |
+| `joblib` | `1.6.0` | `>=1.3.0` |
 
 Các package trên đã được import runtime thành công. `Flask 3.1.3`,
 `SQLAlchemy 2.0.52` và `statsmodels 0.15.0` cũng import được. Bộ 24 unit test
@@ -66,6 +67,15 @@ python -m unittest discover -s evaluation/tests -t . -v
 ```
 
 - Random seed chung: `42` (NumPy, scikit-learn, TensorFlow).
+
+## Model bundle tái lập
+
+Các run mới lưu candidate runtime ở
+`data/models/evaluation/<run_id>/`. Isolation Forest bundle gồm model, fitted
+`RobustScaler`, reference score distribution và transformer (nếu có); DeepLog
+bundle gồm `.keras`, vocabulary và config. Mỗi bundle có
+`bundle_manifest.json` chứa SHA-256 của file bên trong. Chỉ load bundle tạo từ
+run tin cậy cục bộ; không deserialize artifact không rõ nguồn gốc.
 
 ## Chạy benchmark và khóa test hold-out
 

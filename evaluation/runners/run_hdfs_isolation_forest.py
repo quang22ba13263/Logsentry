@@ -19,6 +19,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from evaluation.adapters.hdfs_adapter import load_hdfs_traces
+from evaluation.artifacts.model_bundle import save_isolation_forest_bundle
 from evaluation.detectors.log_only_isolation_forest import IsolationForestConfig, LogOnlyIsolationForest
 from evaluation.runners.bgl_rule_benchmark import _metrics, _select_validation_threshold
 from evaluation.runners.frozen_split import load_hdfs_development_assignments
@@ -77,12 +78,15 @@ def main() -> None:
     if output.exists():
         raise FileExistsError(f"Refusing to overwrite existing run artifact: {output}")
     output.mkdir(parents=True)
+    models_output = (ROOT / config["output"]["models_dir"]).resolve().parent / args.run_id
+    models_output.mkdir(parents=True, exist_ok=False)
+    bundle_manifest = save_isolation_forest_bundle(detector, models_output / "isolation_forest")
     with (output / "predictions.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0])); writer.writeheader(); writer.writerows(rows)
     metrics = {"evaluation_phase": "development_validation_only", "metric_split": "validation", "hdfs_log_only_isolation_forest": _metrics(rows), "selected_validation_threshold": threshold, "n_estimators": n_estimators, "max_samples": max_samples, "train_normal_samples": len(train_normal), "validation_samples": len(validation)}
     (output / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     (output / "run_config.yaml").write_text(config_path.read_text(encoding="utf-8"), encoding="utf-8")
-    manifest = {"run_id": args.run_id, "evaluation_phase": "development_validation_only", "upstream_split_sha256": upstream_manifest["split_sha256"], "config_sha256": sha256(config_path), "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), "timestamp_utc": datetime.now(timezone.utc).isoformat(), "test_scored": False, "test_labels_exported": False}
+    manifest = {"run_id": args.run_id, "evaluation_phase": "development_validation_only", "upstream_split_sha256": upstream_manifest["split_sha256"], "config_sha256": sha256(config_path), "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), "timestamp_utc": datetime.now(timezone.utc).isoformat(), "model_bundle": str(bundle_manifest), "test_scored": False, "test_labels_exported": False}
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print(json.dumps({"output": str(output), "metrics": metrics}, indent=2))
 

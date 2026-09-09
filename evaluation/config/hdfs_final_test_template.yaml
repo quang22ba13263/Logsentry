@@ -1,0 +1,30 @@
+version: hdfs_final_test_template_v1
+status: pending_candidate_freeze
+dataset_config: evaluation/config/hdfs_v1_final.yaml
+candidate:
+  rule:
+    normal_percentile: 99
+    validation_threshold: 0.2
+  isolation_forest:
+    n_estimators: 200
+    max_samples: 512
+    validation_threshold: 0.7651370
+  deeplog:
+    train_normal_limit: 50000
+    sequence_length: 10
+    embedding_dim: 16
+    lstm_units: 32
+    epochs: null
+    batch_size: 256
+    score_batch_size: 4096
+    validation_threshold: null
+  fusion:
+    weights:
+      log_only_rule: 0.75
+      log_only_isolation_forest: 0.0
+      log_only_deeplog: 0.25
+    validation_threshold: null
+test_policy:
+  require_release_flag: true
+  require_exact_approval_token: HDFS_TEST_RELEASE_CONFIRMED
+  allow_single_immutable_run_id: true

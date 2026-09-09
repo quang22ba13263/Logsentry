@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from evaluation.runners.frozen_split import load_hdfs_development_assignments
+from evaluation.runners.frozen_split import load_hdfs_development_assignments, load_hdfs_sealed_test_ids
 
 
 class FrozenSplitTests(unittest.TestCase):
@@ -22,6 +22,15 @@ class FrozenSplitTests(unittest.TestCase):
             path.write_text("sample_id,split,ground_truth\na,train,0\nb,validation,1\nc,test,0\n", encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "must not expose"):
                 load_hdfs_development_assignments(path)
+
+    def test_sealed_test_loader_returns_ids_and_rejects_labels(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "split.csv"
+            path.write_text("sample_id,split,ground_truth\na,train,0\nc,test,\nd,test,\n", encoding="utf-8")
+            self.assertEqual(("c", "d"), load_hdfs_sealed_test_ids(path))
+            path.write_text("sample_id,split,ground_truth\nc,test,1\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "must be blank"):
+                load_hdfs_sealed_test_ids(path)
 
 
 if __name__ == "__main__":
