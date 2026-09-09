@@ -12,7 +12,7 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
 - [x] SHA-256 BGL structured CSV, HDFS traces và HDFS occurrence matrix đã ghi
   tại `README.md` và config.
 - [x] Protocol, BGL/HDFS YAML config và random seed `42` đã tạo.
-- [x] Python/dependency runtime đã được kiểm tra; 24 unit test evaluation pass.
+- [x] Python/dependency runtime đã được kiểm tra; 29 unit test evaluation pass.
 - [x] Runner BGL đã tạo `manifest.json`, checksum input/config, `split.csv`,
   `predictions.csv`, `metrics.json` và `run_config.yaml` tại output bị ignore.
 

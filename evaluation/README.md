@@ -53,8 +53,8 @@ Kiểm tra ngày 2026-09-06 bằng interpreter đang hoạt động:
 | `joblib` | `1.6.0` | `>=1.3.0` |
 
 Các package trên đã được import runtime thành công. `Flask 3.1.3`,
-`SQLAlchemy 2.0.52` và `statsmodels 0.15.0` cũng import được. Bộ 24 unit test
-trong `evaluation/tests` pass với interpreter này.
+`SQLAlchemy 2.0.52` và `statsmodels 0.15.0` cũng import được. Bộ 29 unit test
+hiện tại trong `evaluation/tests` pass với interpreter này.
 
 Trước khi chạy benchmark chính thức, lưu output của các lệnh sau vào
 `manifest.json` để gắn kết quả với đúng môi trường thực thi:
