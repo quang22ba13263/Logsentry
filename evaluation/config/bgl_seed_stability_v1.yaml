@@ -1,0 +1,18 @@
+version: bgl_seed_stability_v1
+candidate:
+  detector: log_only_isolation_forest
+  n_estimators: 200
+  max_samples: auto
+  contamination: auto
+fixed_protocol:
+  sample: event_count_window_20_stride_20
+  split: chronological_60_20_20
+  metric_split: validation
+seeds: [13, 42, 2026]
+bootstrap:
+  method: stratified_nonparametric
+  resamples: 10000
+  confidence_level: 0.95
+  random_seed: 20260909
+selection_metric: validation_f1
+test_policy: never_score_test_during_stability_analysis

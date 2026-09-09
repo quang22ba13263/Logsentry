@@ -20,6 +20,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from evaluation.adapters.bgl_adapter import load_bgl_events, make_bgl_event_windows
+from evaluation.artifacts.model_bundle import save_deeplog_bundle, save_isolation_forest_bundle
 from evaluation.detectors.log_only_isolation_forest import IsolationForestConfig, LogOnlyIsolationForest
 from evaluation.detectors.log_only_deeplog import DeepLogConfig, LogOnlyDeepLog
 from evaluation.detectors.log_only_rule import RuleConfig
@@ -53,9 +54,11 @@ def main() -> None:
     parser.add_argument("--rule-normal-percentile", type=float)
     parser.add_argument("--if-n-estimators", type=int)
     parser.add_argument("--deeplog-sequence-length", type=int)
+    parser.add_argument("--random-seed", type=int, help="Override seed for a predeclared stability run.")
     args = parser.parse_args()
     config_path = args.config.resolve()
     config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    random_seed = args.random_seed if args.random_seed is not None else int(config["random_seed"])
     if not re.fullmatch(r"[A-Za-z0-9_-]+", args.run_id):
         raise ValueError("run-id may contain only letters, digits, underscores and hyphens")
     source = (ROOT / config["dataset"]["structured_log_path"]).resolve()
@@ -97,7 +100,7 @@ def main() -> None:
     if_n_estimators = args.if_n_estimators or int(if_config["n_estimators"])
     detector = LogOnlyIsolationForest(feature_names, IsolationForestConfig(
         n_estimators=if_n_estimators, max_samples=if_config["max_samples"],
-        contamination=if_config["contamination"], random_seed=config["random_seed"],
+        contamination=if_config["contamination"], random_seed=random_seed,
     )).fit([item.features for item in train_features if not item.ground_truth])
     validation_scores = detector.score([item.features for item in validation_features])
     validation_if_rows = [{"sample_id": item.sample_id, "split": "validation", "ground_truth": item.ground_truth, "detector": "log_only_isolation_forest", "raw_score": score.raw_score, "normalized_score": score.normalized_score, "threshold": None, "prediction": 0, "reason": "isolation_forest_log_feature"} for item, score in zip(validation_features, validation_scores, strict=True)]
@@ -108,12 +111,17 @@ def main() -> None:
 
     deep_config = config["detectors"]["deeplog"]
     deeplog_sequence_length = args.deeplog_sequence_length or int(deep_config["sequence_length"])
-    deeplog = LogOnlyDeepLog(DeepLogConfig(sequence_length=deeplog_sequence_length, embedding_dim=deep_config["embedding_dim"], lstm_units=deep_config["lstm_units"], epochs=deep_config["epochs"], batch_size=deep_config["batch_size"], random_seed=config["random_seed"])).fit([item.sequence for item in splits.train if not item.ground_truth])
+    deeplog = LogOnlyDeepLog(DeepLogConfig(sequence_length=deeplog_sequence_length, embedding_dim=deep_config["embedding_dim"], lstm_units=deep_config["lstm_units"], epochs=deep_config["epochs"], batch_size=deep_config["batch_size"], random_seed=random_seed)).fit([item.sequence for item in splits.train if not item.ground_truth])
     validation_deep_scores = deeplog.score([item.sequence for item in splits.validation])
     validation_deep_rows = [{"sample_id": item.sample_id, "split": "validation", "ground_truth": item.ground_truth, "detector": "log_only_deeplog", "raw_score": score, "normalized_score": score, "threshold": None, "prediction": 0, "reason": "lstm_next_event_surprisal"} for item, score in zip(splits.validation, validation_deep_scores, strict=True)]
     deep_threshold = _select_validation_threshold(validation_deep_rows)
     for row in validation_deep_rows:
         row["threshold"] = deep_threshold; row["prediction"] = int(float(row["normalized_score"]) >= deep_threshold)
+
+    models_output = (ROOT / config["output"]["models_dir"]).resolve().parent / args.run_id
+    models_output.mkdir(parents=True, exist_ok=False)
+    if_bundle_manifest = save_isolation_forest_bundle(detector, models_output / "isolation_forest", feature_transformer=transformer)
+    deeplog_bundle_manifest = save_deeplog_bundle(deeplog, models_output / "deeplog")
 
     with (output / "split.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=["sample_id", "split", "ground_truth"])
@@ -144,7 +152,7 @@ def main() -> None:
             detector_metrics = metrics[detector_name]
             writer.writerow({"detector": detector_name, **{key: detector_metrics[key] for key in ("tp", "fp", "tn", "fn")}})
     (output / "run_config.yaml").write_text(config_path.read_text(encoding="utf-8"), encoding="utf-8")
-    manifest = {"run_id": args.run_id, "evaluation_phase": metrics["evaluation_phase"], "dataset_sha256": actual_hash, "config_sha256": sha256(config_path), "timestamp_utc": datetime.now(timezone.utc).isoformat(), "python": sys.version, "platform": platform.platform(), "rule_normal_percentile": rule_normal_percentile, "if_n_estimators": if_n_estimators, "deeplog_sequence_length": deeplog_sequence_length, "selected_validation_threshold": rule_threshold, "selected_if_validation_threshold": if_threshold, "selected_deeplog_validation_threshold": deep_threshold, "split_sha256": sha256(output / "split.csv"), "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()}
+    manifest = {"run_id": args.run_id, "evaluation_phase": metrics["evaluation_phase"], "dataset_sha256": actual_hash, "config_sha256": sha256(config_path), "timestamp_utc": datetime.now(timezone.utc).isoformat(), "python": sys.version, "platform": platform.platform(), "random_seed": random_seed, "rule_normal_percentile": rule_normal_percentile, "if_n_estimators": if_n_estimators, "deeplog_sequence_length": deeplog_sequence_length, "selected_validation_threshold": rule_threshold, "selected_if_validation_threshold": if_threshold, "selected_deeplog_validation_threshold": deep_threshold, "split_sha256": sha256(output / "split.csv"), "model_bundles": {"isolation_forest": str(if_bundle_manifest), "deeplog": str(deeplog_bundle_manifest)}, "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()}
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print(json.dumps({"output": str(output), "metrics": metrics, "thresholds": {"log_only_rule": rule_threshold, "log_only_isolation_forest": if_threshold, "log_only_deeplog": deep_threshold}}, indent=2))
 

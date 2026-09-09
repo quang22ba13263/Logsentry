@@ -1,0 +1,16 @@
+version: hdfs_deeplog_epoch_tuning_v1
+upstream_split_artifact: hdfs_v1_final_split_20260907
+fixed_parameters:
+  sequence_length: 10
+  embedding_dim: 16
+  lstm_units: 32
+  batch_size: 256
+  score_batch_size: 4096
+  score_aggregation: max
+  train_normal_limit: 50000
+  random_seed: 42
+tuning_parameter:
+  name: epochs
+  values: [1, 2, 3]
+selection_metric: validation_f1
+test_policy: never_score_test_during_tuning
