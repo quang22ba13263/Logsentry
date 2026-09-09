@@ -56,6 +56,13 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   candidate hiện tại. Kết quả ghi trong `reports/bgl_tuning_plan.md`.
 - [x] BGL DeepLog sequence tuning 5/10: F1=0.5714/0.5926, score=1.0 là
   20/20 và 19/20; UNK saturation nên DeepLog chưa đủ điều kiện fusion BGL.
+- [x] BGL IF candidate đã được kiểm tra seed stability trên seed 13/42/2026
+  (200 trees, cùng frozen validation): F1 0.8000/0.7619/0.7619, mean
+  0.7746 ± 0.0180. Bootstrap stratified 10.000 resample CI được ghi tại
+  `reports/bgl_validation_uncertainty.md`; không đọc test.
+- [x] Bundle model runtime đã có cho IF (model/scaler/reference score/
+  transformer) và DeepLog (`.keras`/vocabulary/config), kiểm tra round-trip
+  save/load pass. Bundle ở `data/models/evaluation/<run_id>/` và bị ignore.
 - [x] Báo cáo tổng hợp supervisor đã tạo tại
   `reports/supervisor_evaluation_report.md`, gồm protocol, train/tuning,
   kết quả, path, tái lập, test seal và known gap HDFS final runner.
@@ -138,6 +145,12 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   R=1.0000, F1=0.9985 trên validation; test vẫn niêm phong.
 - [x] VAR HDFS v1: **N/A** theo protocol vì sample là block trace/session,
   không có chuỗi thời gian window đều; đã ghi trong bảng kết quả validation.
+- [~] DeepLog epoch tuning v1: grid đã khóa 1/2/3 epoch, 50.000 normal trace,
+  frozen validation; epoch 1 đang được tái lập với bundle model, epoch 2/3
+  đang chạy. Không score hoặc export nhãn test.
+- [x] `run_hdfs_final_test.py` và guard unit test đã tạo, nhưng YAML mặc định
+  là `pending_candidate_freeze`, buộc `--release-sealed-test` + token chính
+  xác và config `status: frozen`. Chưa chạy final test.
 
 ## D. Vấn đề / quyết định cần theo dõi
 
