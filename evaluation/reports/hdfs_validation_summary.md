@@ -47,6 +47,12 @@ semantics ground truth và vi phạm protocol.
 Mỗi artifact có `manifest.json` với `test_scored=false` và
 `test_labels_exported=false`; `predictions.csv` chỉ có `split=validation`.
 
+Candidate bundle tái lập hiện hành: IF 200/512 nằm tại
+`data/models/evaluation/hdfs_v1_final_if_bundle_200_512_20260909/isolation_forest/`
+và DeepLog epoch 1 tại
+`data/models/evaluation/hdfs_v1_final_deeplog_epoch1_50000_20260909/deeplog/`.
+Cả hai bundle đều có manifest SHA-256; chúng là runtime artifact bị Git ignore.
+
 ## Diễn giải và bước tiếp theo
 
 DeepLog là detector tốt nhất ở checkpoint hiện tại theo F1 validation.
@@ -66,6 +72,22 @@ F1.
 Theo F1, 50.000 là checkpoint tốt nhất nhưng chênh lệch với 10.000 là rất nhỏ
 (0,00007); đây là lý do để cân nhắc runtime trước khi khóa lựa chọn. Không vòng
 nào score test.
+
+### DeepLog epoch confirmation v1
+
+Sau nhận xét phản biện, giữ cố định 50.000 normal trace, seed 42, sequence 10,
+LSTM 16/32, batch size 256 và frozen validation; chỉ chạy grid đã công bố
+`epochs = [1, 2, 3]`. Đây là kiểm tra hội tụ giới hạn, không mở thêm
+hyperparameter và không score test.
+
+| Epoch | Precision | Recall | F1 | Artifact |
+| ---: | ---: | ---: | ---: | --- |
+| 1 | 0,99682 | 0,76761 | 0,86733 | `hdfs_v1_final_deeplog_epoch1_50000_20260909/` |
+| 2 | 0,99178 | 0,76712 | 0,86510 | `hdfs_v1_final_deeplog_epoch2_50000_20260909/` |
+| 3 | 0,99304 | 0,76761 | 0,86589 | `hdfs_v1_final_deeplog_epoch3_50000_20260909/` |
+
+Epoch 1 là candidate giữ lại theo validation F1. Tăng epoch không cải thiện
+recall và làm giảm F1, nên không có cơ sở phương pháp để tiếp tục grid này.
 
 Các vòng tuning kế tiếp thay đổi một nhóm tham số mỗi lần, đo lại validation và
 ghi config/seed/artifact. Fusion chỉ được thử sau khi chọn candidate
@@ -92,6 +114,6 @@ Rule 0,75 + DeepLog 0,25 (IF 0) đạt P=0,9971, R=1,0000, F1=0,9985,
 threshold=0,2499857. Đây là selection hoàn toàn theo validation; cần xác nhận
 sau khi config khóa, không dùng như metric test.
 
-Khi tuning được chốt, cần đóng băng config/model hash và mới chạy test đúng một
-lần để tạo báo cáo cuối. Không được dùng kết quả trong file này như metric test
-hay tuyên bố độ chính xác cuối cùng.
+Candidate đã được khóa tại `config/hdfs_final_candidate_v1.yaml`; runner final
+vẫn yêu cầu cờ release và token tường minh. Không được dùng kết quả trong file
+này như metric test hay tuyên bố độ chính xác cuối cùng.

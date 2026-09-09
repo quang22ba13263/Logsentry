@@ -145,9 +145,14 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   R=1.0000, F1=0.9985 trên validation; test vẫn niêm phong.
 - [x] VAR HDFS v1: **N/A** theo protocol vì sample là block trace/session,
   không có chuỗi thời gian window đều; đã ghi trong bảng kết quả validation.
-- [~] DeepLog epoch tuning v1: grid đã khóa 1/2/3 epoch, 50.000 normal trace,
-  frozen validation; epoch 1 đang được tái lập với bundle model, epoch 2/3
-  đang chạy. Không score hoặc export nhãn test.
+- [x] DeepLog epoch tuning v1: grid 1/2/3 epoch, 50.000 normal trace và frozen
+  validation đã hoàn tất: F1 0.86733 / 0.86510 / 0.86589. Epoch 1 được giữ;
+  xem `reports/hdfs_validation_summary.md`. Không score hoặc export nhãn test.
+- [x] Candidate HDFS đã khóa tại `config/hdfs_final_candidate_v1.yaml`, gồm
+  threshold/weight chọn hoàn toàn từ validation. Khóa config không chạy test.
+- [x] HDFS IF candidate 200/512 đã được tái lập kèm bundle model/scaler tại
+  `hdfs_v1_final_if_bundle_200_512_20260909/`: P=0.98875, R=0.47309,
+  F1=0.63997; test không được score.
 - [x] `run_hdfs_final_test.py` và guard unit test đã tạo, nhưng YAML mặc định
   là `pending_candidate_freeze`, buộc `--release-sealed-test` + token chính
   xác và config `status: frozen`. Chưa chạy final test.

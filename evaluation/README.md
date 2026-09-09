@@ -95,3 +95,9 @@ chỉ là diagnostic, không phải kết quả cuối.
 
 Xem [evaluation_protocol.md](evaluation_protocol.md) để biết split, ngăn rò rỉ
 nhãn và quy tắc đánh giá bắt buộc.
+
+HDFS có hai config riêng: `config/hdfs_final_test_template.yaml` là template
+không thể chạy, còn `config/hdfs_final_candidate_v1.yaml` là candidate đã khóa
+từ validation. Ngay cả candidate đã khóa vẫn **không** score test nếu thiếu cả
+`--release-sealed-test` và token xác nhận; không dùng lệnh này nếu chưa có phê
+duyệt rõ ràng.

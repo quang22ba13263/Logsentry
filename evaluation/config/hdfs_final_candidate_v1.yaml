@@ -1,0 +1,36 @@
+version: hdfs_final_candidate_v1
+status: frozen
+frozen_from_validation_only:
+  frozen_split_sha256: b99bd57ebab04302a286a28a3693e296c83e9de3cd93789ac0fb81fe7cc944ae
+  rule_artifact: hdfs_v1_final_rule_checksum_20260907
+  isolation_forest_artifact: hdfs_v1_final_if_bundle_200_512_20260909
+  deeplog_artifact: hdfs_v1_final_deeplog_epoch1_50000_20260909
+  fusion_artifact: hdfs_v1_final_fusion_tune_fast_20260907
+dataset_config: evaluation/config/hdfs_v1_final.yaml
+candidate:
+  rule:
+    normal_percentile: 99
+    validation_threshold: 0.2
+  isolation_forest:
+    n_estimators: 200
+    max_samples: 512
+    validation_threshold: 0.765136983311378
+  deeplog:
+    train_normal_limit: 50000
+    sequence_length: 10
+    embedding_dim: 16
+    lstm_units: 32
+    epochs: 1
+    batch_size: 256
+    score_batch_size: 4096
+    validation_threshold: 0.9999429889321618
+  fusion:
+    weights:
+      log_only_rule: 0.75
+      log_only_isolation_forest: 0.0
+      log_only_deeplog: 0.25
+    validation_threshold: 0.24998574723304046
+test_policy:
+  require_release_flag: true
+  require_exact_approval_token: HDFS_TEST_RELEASE_CONFIRMED
+  allow_single_immutable_run_id: true
