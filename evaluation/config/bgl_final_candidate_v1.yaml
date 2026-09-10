@@ -1,0 +1,37 @@
+version: bgl_final_candidate_v1
+status: frozen
+dataset:
+  name: BGL_2k
+  structured_log_path: Dataset/BGL/BGL_2k.log_structured.csv
+  sha256: 3fe74103c0b02a28514534e2a47257a3f770135ca61afd425bbd3b9d6a31fe26
+sample:
+  kind: event_count_window
+  window_size: 20
+  stride: 20
+split:
+  strategy: chronological
+  train_fraction: 0.60
+  validation_fraction: 0.20
+  test_fraction: 0.20
+frozen_from_validation_only:
+  validation_artifact: data/processed/evaluation/bgl_if_stability_seed42_20260909_cd05065_retry
+  projected_split_sha256: d9ddc71f4928f27d293e70724ed78ec5477f5c4aa552d8078f5e7b436828926d
+  isolation_forest_bundle: data/models/evaluation/bgl_if_stability_seed42_20260909_cd05065_retry/isolation_forest
+candidate:
+  detector: log_only_isolation_forest
+  random_seed: 42
+  n_estimators: 200
+  max_samples: auto
+  contamination: auto
+  validation_threshold: 0.8541666666666666
+excluded_detectors:
+  log_only_rule: constant validation score; not a final candidate
+  log_only_deeplog: UNK saturation; not a final candidate
+  log_only_fusion: N/A; fewer than two discriminative detector scores
+  var: N/A; BGL time series data-quality gate not met
+test_policy:
+  evaluation_phase: post_diagnostic_confirmation
+  reason: BGL test was observed in earlier diagnostic development artifacts
+  require_release_flag: true
+  require_exact_approval_token: BGL_POST_DIAGNOSTIC_CONFIRMATION_CONFIRMED
+  allow_single_immutable_run_id: true

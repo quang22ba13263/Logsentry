@@ -4,7 +4,9 @@ frozen_from_validation_only:
   frozen_split_sha256: b99bd57ebab04302a286a28a3693e296c83e9de3cd93789ac0fb81fe7cc944ae
   rule_artifact: hdfs_v1_final_rule_checksum_20260907
   isolation_forest_artifact: hdfs_v1_final_if_bundle_200_512_20260909
+  isolation_forest_bundle: data/models/evaluation/hdfs_v1_final_if_bundle_200_512_20260909/isolation_forest
   deeplog_artifact: hdfs_v1_final_deeplog_epoch1_50000_20260909
+  deeplog_bundle: data/models/evaluation/hdfs_v1_final_deeplog_epoch1_50000_20260909/deeplog
   fusion_artifact: hdfs_v1_final_fusion_tune_fast_20260907
 dataset_config: evaluation/config/hdfs_v1_final.yaml
 candidate:

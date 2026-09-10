@@ -101,3 +101,12 @@ không thể chạy, còn `config/hdfs_final_candidate_v1.yaml` là candidate đ
 từ validation. Ngay cả candidate đã khóa vẫn **không** score test nếu thiếu cả
 `--release-sealed-test` và token xác nhận; không dùng lệnh này nếu chưa có phê
 duyệt rõ ràng.
+
+BGL có `config/bgl_final_candidate_v1.yaml` và runner riêng
+`runners/run_bgl_final_test.py`. Đây là **post-diagnostic confirmation**, không
+phải hold-out test chưa từng quan sát: chỉ Isolation Forest 200 trees/seed 42
+được score vì Rule và DeepLog không vượt fusion gate. Cả BGL lẫn HDFS final
+runner chỉ nạp model bundle đã hash-verify, bắt buộc release flag/token và từ
+chối chạy khi Git working tree còn thay đổi. Các bundle ở `data/models/` bị
+ignore, nên phải có mặt cục bộ hoặc được giao kèm repository, không commit vào
+Git.

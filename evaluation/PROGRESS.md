@@ -150,6 +150,12 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   xem `reports/hdfs_validation_summary.md`. Không score hoặc export nhãn test.
 - [x] Candidate HDFS đã khóa tại `config/hdfs_final_candidate_v1.yaml`, gồm
   threshold/weight chọn hoàn toàn từ validation. Khóa config không chạy test.
+- [x] HDFS final runner nạp IF/DeepLog bundle đã hash-verify từ candidate
+  frozen, thay vì train lại; runner yêu cầu release token và clean worktree.
+- [x] BGL final candidate đã khóa tại `config/bgl_final_candidate_v1.yaml`:
+  chỉ IF 200 trees/seed 42 với threshold validation 0,8541667 là candidate.
+  `run_bgl_final_test.py` là post-diagnostic confirmation có release token,
+  clean-worktree guard và nạp IF/scaler/transformer bundle đã hash-verify.
 - [x] HDFS IF candidate 200/512 đã được tái lập kèm bundle model/scaler tại
   `hdfs_v1_final_if_bundle_200_512_20260909/`: P=0.98875, R=0.47309,
   F1=0.63997; test không được score.

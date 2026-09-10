@@ -56,6 +56,8 @@ def main() -> None:
     parser.add_argument("--deeplog-sequence-length", type=int)
     parser.add_argument("--random-seed", type=int, help="Override seed for a predeclared stability run.")
     args = parser.parse_args()
+    if args.final_test:
+        raise RuntimeError("Use run_bgl_final_test.py for the guarded frozen BGL confirmation")
     config_path = args.config.resolve()
     config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     random_seed = args.random_seed if args.random_seed is not None else int(config["random_seed"])
