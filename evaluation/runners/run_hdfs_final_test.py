@@ -73,7 +73,7 @@ def _score_rows(test, detector: str, scores, threshold: float, reason: str) -> l
             "detector": detector, "raw_score": raw_score, "normalized_score": normalized_score,
             "threshold": threshold, "prediction": int(normalized_score >= threshold), "reason": reason,
         }
-        for trace, raw_score, normalized_score in scores
+        for trace, (raw_score, normalized_score) in zip(test, scores, strict=True)
     ]
 
 
