@@ -1,16 +1,18 @@
 # Báo cáo tổng hợp đánh giá LogSentry — BGL và HDFS
 
-**Cập nhật:** 2026-09-08
+**Cập nhật:** 2026-09-10
 **Branch:** `codex/log-only-evaluation`
-**Trạng thái:** development/validation hoàn tất checkpoint chính; chưa chạy test cuối niêm phong.
+**Trạng thái:** development/validation hoàn tất; BGL/HDFS final runner và
+candidate frozen đã sẵn sàng nhưng **chưa chạy test cuối niêm phong**.
 
 ## Tóm tắt
 
 Đánh giá dùng log công khai có ground truth, không tạo metric hệ thống giả.
 BGL và HDFS được train/đánh giá độc lập, không có model nào train chung hai
 dataset. HDFS đạt validation tốt nhất với fusion Rule + DeepLog F1=0,9985.
-BGL candidate tốt nhất là Isolation Forest 200 trees F1=0,7619. Đây đều là
-metric validation, không phải final accuracy.
+BGL candidate là Isolation Forest 200 trees, seed 42, F1=0,7619; qua ba seed
+đạt mean F1=0,7746 ± 0,0180. Đây đều là metric validation, không phải final
+accuracy.
 
 ## Dataset và xử lý
 
@@ -96,16 +98,26 @@ HDFS fusion chỉ dùng Rule/DeepLog vì adding IF làm validation F1 thấp hơ
 | Checklist | `evaluation/PROGRESS.md` |
 | Báo cáo HDFS | `evaluation/reports/hdfs_validation_summary.md` |
 | Tuning BGL | `evaluation/reports/bgl_tuning_plan.md` |
+| BGL uncertainty/seed stability | `evaluation/reports/bgl_validation_uncertainty.md` |
+| BGL final candidate | `evaluation/config/bgl_final_candidate_v1.yaml` |
+| HDFS final candidate | `evaluation/config/hdfs_final_candidate_v1.yaml` |
+| BGL final runner | `evaluation/runners/run_bgl_final_test.py` |
+| HDFS final runner | `evaluation/runners/run_hdfs_final_test.py` |
 | HDFS Rule | `data/processed/evaluation/hdfs_v1_final_rule_checksum_20260907/` |
 | HDFS IF | `data/processed/evaluation/hdfs_v1_final_if_tune_200_512_20260907/` |
 | HDFS DeepLog | `data/processed/evaluation/hdfs_v1_final_deeplog_tune_50000_20260907/` |
 | HDFS Fusion | `data/processed/evaluation/hdfs_v1_final_fusion_tune_fast_20260907/` |
 | BGL IF | `data/processed/evaluation/bgl_if_tune_200_20260908/` |
 | BGL DeepLog | `data/processed/evaluation/bgl_deeplog_tune_seq10_20260908/` |
+| BGL frozen IF bundle | `data/models/evaluation/bgl_if_stability_seed42_20260909_cd05065_retry/isolation_forest/` |
+| HDFS frozen IF bundle | `data/models/evaluation/hdfs_v1_final_if_bundle_200_512_20260909/isolation_forest/` |
+| HDFS frozen DeepLog bundle | `data/models/evaluation/hdfs_v1_final_deeplog_epoch1_50000_20260909/deeplog/` |
 
-Artifacts runtime bị ignore tại `data/processed/evaluation/<run_id>/`. Hiện
-chưa persist serialized model/scaler; reproducibility dựa vào config, seed,
-manifest và prediction. Cần bổ sung serialization trước final/deployment.
+Artifacts runtime bị ignore tại `data/processed/evaluation/<run_id>/`. Candidate
+Isolation Forest đã lưu model/scaler/reference-score (và BGL transformer) bằng
+`joblib`; DeepLog đã lưu `.keras`, vocabulary và config. Mỗi bundle có
+`bundle_manifest.json` SHA-256. Khi giao repository cho supervisor, cần giao
+kèm các bundle runtime này hoặc tái tạo chúng bằng validation protocol.
 
 ## Cách tái lập validation
 
@@ -118,29 +130,38 @@ python evaluation/runners/run_hdfs_deeplog.py --config evaluation/config/hdfs_v1
 python evaluation/runners/run_bgl.py --config evaluation/config/bgl_v1.yaml --run-id bgl_supervisor_dev --if-n-estimators 200 --deeplog-sequence-length 10
 ```
 
-Các lệnh trên là development-only: không truyền `--final-test`.
+Các lệnh trên là development-only: không score test hold-out.
 
 ## Test niêm phong cuối
 
 Chỉ thực hiện sau khi supervisor phê duyệt config/commit/hash cuối: dừng tuning,
 commit config, ghi seed/hash, dùng run ID mới và không overwrite artifact.
 
-### BGL
+### Điều kiện chung
+
+- Candidate config và source commit phải đã được review/push.
+- Working tree phải sạch; hai runner từ chối chạy nếu còn thay đổi chưa commit.
+- Bundle được khai báo trong candidate config phải tồn tại và hash-verify pass.
+- Mỗi benchmark dùng run ID mới, đúng một lần; không mở lại test để tune.
+
+### BGL — post-diagnostic confirmation
 
 ```powershell
-python evaluation/runners/run_bgl.py --config evaluation/config/bgl_v1.yaml --run-id bgl_post_diagnostic_confirmation --if-n-estimators 200 --deeplog-sequence-length 10 --final-test
+python evaluation/runners/run_bgl_final_test.py --config evaluation/config/bgl_final_candidate_v1.yaml --run-id bgl_post_diagnostic_confirmation_YYYYMMDD --release-sealed-test --approval-token BGL_POST_DIAGNOSTIC_CONFIRMATION_CONFIRMED
 ```
 
 Ghi nhãn kết quả BGL là *post-diagnostic confirmation*.
 
-### HDFS — known gap cần review
+### HDFS — sealed final test
 
-Chưa có `run_hdfs_final_test.py` cho frozen final split. Đây là guard có chủ ý:
-runner HDFS hiện chỉ đọc train/validation. Không thay bằng
-`run_hdfs_smoke.py --final-test` vì smoke split không phải final-scale protocol.
-Trước HDFS final test cần triển khai/review runner explicit `--final-test` để
-xác minh split/config hash, train candidate khóa, score test đúng một lần và
-export prediction/confusion matrix/manifest.
+Không dùng `run_hdfs_smoke.py --final-test` vì smoke split không phải
+final-scale protocol. Runner explicit nạp IF/DeepLog bundle đã hash-verify,
+kiểm tra frozen split/config, fit lại Rule deterministic từ train-normal và
+score test đúng một lần:
+
+```powershell
+python evaluation/runners/run_hdfs_final_test.py --config evaluation/config/hdfs_final_candidate_v1.yaml --split-artifact data/processed/evaluation/hdfs_v1_final_split_20260907 --run-id hdfs_final_YYYYMMDD --release-sealed-test --approval-token HDFS_TEST_RELEASE_CONFIRMED
+```
 
 ## Đánh giá trung thực
 
