@@ -1,6 +1,6 @@
 # Tiến độ log-only evaluation
 
-Trạng thái kiểm tra: 2026-09-07. Checklist này theo
+Trạng thái kiểm tra: 2026-09-10. Checklist này theo
 [`KE_HOACH_DANH_GIA_LOG_ONLY_CHINH_THUC.md`](../KE_HOACH_DANH_GIA_LOG_ONLY_CHINH_THUC.md)
 và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứng.
 
@@ -159,9 +159,9 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
 - [x] HDFS IF candidate 200/512 đã được tái lập kèm bundle model/scaler tại
   `hdfs_v1_final_if_bundle_200_512_20260909/`: P=0.98875, R=0.47309,
   F1=0.63997; test không được score.
-- [x] `run_hdfs_final_test.py` và guard unit test đã tạo, nhưng YAML mặc định
-  là `pending_candidate_freeze`, buộc `--release-sealed-test` + token chính
-  xác và config `status: frozen`. Chưa chạy final test.
+- [x] `run_hdfs_final_test.py` đã chạy sealed final với frozen candidate và
+  artifact bất biến `hdfs_v1_final_test_20260910/`: Fusion P=0.7735,
+  R=0.9988, F1=0.8718. Rule/IF/DeepLog đều có TP/FP/TN/FN trong `metrics.json`.
 
 ## D. Vấn đề / quyết định cần theo dõi
 
@@ -170,9 +170,9 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   README/config trước khi tạo bất kỳ final-scale artifact nào.
 
 - [x] `PyYAML 6.0.3` đã cài và runner đọc YAML thành công.
-- [!] Repository hiện không có `.venv`; Python đã xác minh là Python hệ thống
-  3.13.15. Cần dùng đúng interpreter của venv mong muốn trước final run và ghi
-  vào manifest.
+- [!] Repository hiện không có `.venv`; final đã chạy bằng Python hệ thống
+  3.13.15. Nếu tái lập trên máy khác, cần dùng interpreter có dependency trong
+  `requirements.txt` và ghi môi trường thực tế vào manifest.
 - [!] Không được báo cáo F1 hiện tại như kết quả chính thức: chưa có artifact
   immutable versioned và IF chưa calibration qua validation. Rule preliminary
   chọn threshold `0.0` trên validation, dẫn đến mọi test sample bị dự đoán là
@@ -213,10 +213,31 @@ và chỉ ghi nhận checkpoint đã có code/test hoặc artifact kiểm chứn
   `evaluation/features/reports/` chưa track; cần người sở hữu thay đổi xác nhận
   mục đích trước khi stage hoặc khôi phục.
 
-## Bước kế tiếp bắt buộc
+## E. Final release (2026-09-10)
 
-1. Thực hiện BGL validation-only tuning theo grid đã khóa tại
-   `reports/bgl_tuning_plan.md`; không gọi `--final-test`.
-2. Đóng băng candidate HDFS (và BGL sau tuning) cùng config/model hash.
-3. Chỉ khi người dùng chấp thuận mới chạy post-diagnostic confirmation trên
-   BGL test và final test HDFS đúng một lần.
+- [x] Preflight: source/split checksum và frozen model bundle integrity pass;
+  32/32 unit test pass; worktree sạch trước release.
+- [x] HDFS sealed final đã export `predictions.csv`, `metrics.json`,
+  `manifest.json` tại `data/processed/evaluation/hdfs_v1_final_test_20260910/`.
+  Test gồm 115.013 trace; fusion TP/FP/TN/FN = 1.677/491/112.843/2,
+  F1=0.8718. Không tune lại từ kết quả này.
+- [x] BGL post-diagnostic confirmation đã export artifact tại
+  `data/processed/evaluation/bgl_v1_post_diagnostic_confirmation_20260910/`.
+  IF TP/FP/TN/FN = 6/3/9/2, F1=0.7059; không gọi đây là sealed hold-out do
+  test BGL từng bị quan sát trong diagnostic trước đó.
+- [!] HDFS invocation đầu tiên bị dừng trước output/metric bởi lỗi tuple mapping
+  Rule. Đã sửa, thêm regression test, chạy 32/32 test pass và commit `7bcebed`
+  trước invocation tạo artifact final thành công. Chi tiết ở
+  `reports/Final_sumary_evaluation.md`.
+- [x] Báo cáo cuối gồm setup, train, validation/tuning, final confusion matrix,
+  giải thích N/A và đường dẫn artifact tại
+  `reports/Final_sumary_evaluation.md`.
+
+## Bước tiếp theo sau final
+
+1. Bàn giao repository commit final cùng `Dataset/`, frozen model bundle và
+   `data/processed/evaluation/` qua Drive/ZIP hoặc artifact storage, vì các
+   phần runtime bị Git ignore.
+2. Không dùng test final để chọn threshold, fusion weight hoặc epoch. Mọi cải
+   thiện tiếp theo phải dùng validation mới hoặc dataset phát triển mới, rồi tạo
+   một test hold-out mới.
